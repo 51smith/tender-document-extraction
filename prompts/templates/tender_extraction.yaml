@@ -1,0 +1,136 @@
+# Specialized template for tender document extraction
+
+inherits: base
+
+task_description: |
+  Extract comprehensive tender information from the provided procurement document. Focus on critical business information needed for bid preparation and evaluation.
+
+schema_definition: |
+  {
+    "extracted_data": {
+      "project_title": "string - Clear, concise project name",
+      "contracting_authority": {
+        "name": "string - Full organization name",
+        "address": {
+          "street": "string",
+          "city": "string", 
+          "postal_code": "string",
+          "country": "string"
+        },
+        "contact_person": "string - Primary contact name",
+        "email": "string - Contact email",
+        "phone": "string - Contact phone number"
+      },
+      "estimated_value": {
+        "amount": "number - Numeric value only",
+        "currency": "string - Three-letter currency code (EUR, USD, etc.)",
+        "value_type": "enum - total|annual|hourly|daily",
+        "vat_included": "boolean - Whether VAT is included"
+      },
+      "submission_deadline": "string - ISO 8601 datetime (YYYY-MM-DDTHH:MM:SSZ)",
+      "project_duration": "string - Duration description (e.g., '24 months', '2024-2026')",
+      "contract_start_date": "string - Expected start date (ISO 8601)",
+      "evaluation_criteria": [
+        {
+          "criterion": "string - Criterion name (e.g., 'Technical Quality')",
+          "weight_percentage": "number - Weight as percentage (0-100)",
+          "description": "string - Detailed description of criterion"
+        }
+      ],
+      "functional_requirements": [
+        "string - List of functional requirements"
+      ],
+      "technical_requirements": [
+        "string - List of technical specifications"
+      ],
+      "eligibility_criteria": [
+        "string - Qualification requirements for bidders"
+      ],
+      "knockout_criteria": [
+        "string - Mandatory requirements that disqualify if not met"
+      ],
+      "contract_type": "enum - supply|service|works|mixed",
+      "cpv_codes": [
+        "string - Common Procurement Vocabulary codes"
+      ],
+      "procurement_procedure": "string - Type of procurement procedure",
+      "lot_structure": {
+        "is_divided": "boolean - Whether tender is divided into lots",
+        "lots": [
+          {
+            "lot_number": "string",
+            "title": "string",
+            "description": "string",
+            "estimated_value": "object - Same structure as main estimated_value"
+          }
+        ]
+      },
+      "submission_requirements": {
+        "language": "string - Required submission language",
+        "format": "string - Required format (electronic, paper, etc.)",
+        "documents_required": [
+          "string - List of required documents"
+        ]
+      },
+      "special_conditions": [
+        "string - Any special terms or conditions"
+      ]
+    }
+  }
+
+extraction_priorities: |
+  HIGH PRIORITY (must extract with high confidence):
+  - project_title
+  - contracting_authority.name
+  - estimated_value (amount and currency)
+  - submission_deadline
+  - evaluation_criteria
+  - contract_type
+
+  MEDIUM PRIORITY (extract if clearly available):
+  - functional_requirements
+  - technical_requirements
+  - eligibility_criteria
+  - cpv_codes
+  - project_duration
+
+  LOW PRIORITY (extract if easily identifiable):
+  - knockout_criteria
+  - special_conditions
+  - lot_structure details
+  - detailed contact information
+
+field_extraction_hints: |
+  PROJECT TITLE:
+  - Often in document header, title page, or first section
+  - May include reference numbers - extract the descriptive part
+  - Look for "Subject:", "Title:", "Project:", or similar labels
+
+  ESTIMATED VALUE:
+  - Check budget sections, financial summaries, lot descriptions
+  - Look for "Maximum budget", "Estimated cost", "Contract value"
+  - Note if it's excluding/including VAT, taxes
+  - May be expressed as ranges - extract the maximum
+
+  DEADLINE:
+  - Usually clearly marked as "Submission deadline", "Tender deadline"
+  - Include both date and time if specified
+  - Convert to ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)
+
+  EVALUATION CRITERIA:
+  - Often in dedicated section about evaluation methodology
+  - Look for percentages, weights, scoring methods
+  - Common criteria: price, technical quality, experience, sustainability
+
+  REQUIREMENTS:
+  - Functional: what the solution should do/achieve
+  - Technical: specific technologies, standards, specifications
+  - Eligibility: company qualifications, certifications, experience
+
+validation_rules: |
+  - estimated_value.amount must be numeric and positive
+  - evaluation_criteria weights should sum to 100% when all are percentages
+  - submission_deadline must be a future date (when document is current)
+  - contracting_authority.email must be valid email format
+  - cpv_codes must follow 8-digit format (12345678)
+  - All confidence scores must be between 0.0 and 1.0

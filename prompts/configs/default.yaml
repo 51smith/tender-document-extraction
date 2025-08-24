@@ -1,0 +1,64 @@
+# Default prompt configuration
+
+version: "1.0"
+created: "2025-01-24"
+description: "Default configuration for tender document extraction"
+
+# Template selection
+template: "tender_extraction"
+
+# Model parameters
+model_config:
+  temperature: 0.1
+  max_tokens: 8192
+  top_p: 0.9
+  top_k: 40
+
+# Processing options
+processing:
+  enable_multimodal: true
+  extract_tables: true
+  extract_images: true
+  max_context_length: 2000000  # 2M tokens
+  
+# Quality settings
+quality:
+  min_confidence_threshold: 0.5
+  require_high_confidence_fields: 
+    - "project_title"
+    - "submission_deadline" 
+    - "contracting_authority.name"
+  flag_for_review_threshold: 0.7
+
+# Output formatting
+output:
+  include_metadata: true
+  include_confidence_scores: true
+  include_extraction_notes: true
+  date_format: "iso8601"
+  currency_format: "iso4217"
+
+# Language settings
+language:
+  primary: "en"
+  supported: ["en", "de", "fr", "es", "it", "nl"]
+  auto_detect: true
+
+# Validation rules
+validation:
+  enable_schema_validation: true
+  enable_business_rules: true
+  enable_date_validation: true
+  enable_financial_validation: true
+
+# Retry and fallback
+retry:
+  max_attempts: 3
+  backoff_factor: 2.0
+  timeout_seconds: 120
+
+# Caching
+cache:
+  enable_prompt_caching: true
+  cache_duration_hours: 24
+  cache_by_content_hash: true

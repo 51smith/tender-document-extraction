@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  # Redis for job queue and caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Main application
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=development
+      - DEBUG=true
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Worker for background jobs
+  worker:
+    build: .
+    command: rq worker --url redis://redis:6379/0
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=development
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+
+  # Nginx reverse proxy (for production)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    profiles:
+      - production
+
+  # Monitoring with Prometheus (optional)
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    profiles:
+      - monitoring
+
+  # Grafana for visualization (optional)
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+
+volumes:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: tender-extract-network

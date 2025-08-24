@@ -1,0 +1,1 @@
+# FastAPI Tender Document Extraction Service

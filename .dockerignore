@@ -1,0 +1,101 @@
+# Git and version control
+.git/
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Linting and formatting
+.mypy_cache/
+.ruff_cache/
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Logs
+logs/
+*.log
+
+# Documentation
+docs/_build/
+site/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Database
+*.db
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+
+# Development files
+Makefile
+README.md
+CHANGELOG.md
+LICENSE
+
+# Pre-commit
+.pre-commit-config.yaml
