@@ -1,6 +1,6 @@
 # Makefile for Tender Document Extraction Service
 
-.PHONY: help install install-dev setup-dev clean test test-unit test-integration lint format type-check security-check pre-commit run-dev build docker-build docker-run quality-checks ci-checks
+.PHONY: help install install-dev setup-dev clean test test-unit test-integration test-api test-all lint format type-check security-check pre-commit run-dev run-worker run-all build docker-build docker-run quality-checks ci-checks
 
 # Default target
 help:
@@ -12,17 +12,24 @@ help:
 	@echo "  test          - Run all tests"
 	@echo "  test-unit     - Run unit tests only"
 	@echo "  test-integration - Run integration tests"
+	@echo "  test-api      - Run API smoke tests (requires running server)"
+	@echo "  test-all      - Run comprehensive test suite (units + quality + API)"
 	@echo "  lint          - Run linting checks"
 	@echo "  format        - Format code with black and isort"
 	@echo "  type-check    - Run type checking with mypy"
 	@echo "  security-check - Run security checks with bandit"
 	@echo "  pre-commit    - Install and run pre-commit hooks"
 	@echo "  run-dev       - Run development server"
+	@echo "  run-worker    - Run RQ worker for job processing"
+	@echo "  run-all       - Run both server and worker (recommended for dev)"
 	@echo "  quality-checks - Run all code quality checks"
 	@echo "  ci-checks     - Run all CI/CD checks"
 	@echo "  build         - Build the application"
 	@echo "  docker-build  - Build Docker image"
 	@echo "  docker-run    - Run application in Docker"
+	@echo "  install-redis - Install Redis via Homebrew"
+	@echo "  start-redis   - Start Redis server"
+	@echo "  stop-redis    - Stop Redis server"
 
 # Installation targets
 install:
@@ -69,6 +76,30 @@ test-integration:
 test-coverage:
 	pytest --cov=app --cov-report=html --cov-report=term-missing
 
+# Comprehensive testing (MANDATORY for Claude)
+test-all:
+	@echo "🧪 Running comprehensive test suite (MANDATORY)..."
+	./test_all.sh
+
+test-api:
+	@echo "🔗 Running API smoke tests..."
+	@echo "Creating test file..."
+	@echo "Sample tender document for testing API endpoints" > /tmp/test_api_file.txt
+	@echo "Testing health endpoint..."
+	@curl -s -f "http://localhost:8000/health" > /dev/null || (echo "❌ Health endpoint failed - is server running?" && exit 1)
+	@echo "✅ Health endpoint working"
+	@echo "Testing batch extraction endpoint..."
+	@curl -s -X POST "http://localhost:8000/api/v1/extract/batch" -H "Content-Type: multipart/form-data" -F "files=@/tmp/test_api_file.txt" -F "config_name=default" | grep -q "job_id" || (echo "❌ Batch extraction failed" && exit 1)
+	@echo "✅ Batch extraction endpoint working"
+	@echo "Testing jobs listing endpoint..."
+	@curl -s -f "http://localhost:8000/api/v1/jobs" > /dev/null || (echo "❌ Jobs listing failed" && exit 1)
+	@echo "✅ Jobs listing endpoint working"
+	@echo "Testing statistics endpoint..."
+	@curl -s -f "http://localhost:8000/api/v1/statistics" > /dev/null || (echo "❌ Statistics endpoint failed" && exit 1)
+	@echo "✅ Statistics endpoint working"
+	@rm -f /tmp/test_api_file.txt
+	@echo "✅ All API smoke tests passed!"
+
 # Code quality targets
 format:
 	@echo "Formatting code..."
@@ -110,6 +141,37 @@ run-dev:
 	@echo "Starting development server..."
 	python run_dev.py
 
+# RQ Worker
+run-worker:
+	@echo "Starting RQ worker..."
+	@if ! command -v redis-server >/dev/null 2>&1; then \
+		echo "❌ Redis not found. Installing Redis..."; \
+		$(MAKE) install-redis; \
+	fi
+	@if ! pgrep redis-server >/dev/null; then \
+		echo "📡 Starting Redis server..."; \
+		$(MAKE) start-redis; \
+		sleep 2; \
+	fi
+	python run_worker.py
+
+# Run both server and worker (recommended for development)
+run-all:
+	@echo "🚀 Starting full development environment..."
+	@if ! command -v redis-server >/dev/null 2>&1; then \
+		echo "❌ Redis not found. Installing Redis..."; \
+		$(MAKE) install-redis; \
+	fi
+	@if ! pgrep redis-server >/dev/null; then \
+		echo "📡 Starting Redis server..."; \
+		$(MAKE) start-redis; \
+		sleep 2; \
+	fi
+	@echo "Starting RQ worker in background..."
+	python run_worker.py &
+	@echo "Starting development server..."
+	python run_dev.py
+
 # Build targets
 build:
 	@echo "Building application..."
@@ -127,14 +189,32 @@ docker-run: docker-build
 	docker run -p 8000:8000 --env-file .env tender-extract:latest
 
 # Database and Redis (for development)
+install-redis:
+	@echo "Installing Redis via Homebrew..."
+	@if ! command -v brew >/dev/null 2>&1; then \
+		echo "❌ Homebrew not found. Please install Homebrew first:"; \
+		echo "  /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""; \
+		exit 1; \
+	fi
+	brew install redis
+	@echo "✅ Redis installed successfully!"
+
 start-redis:
 	@echo "Starting Redis server..."
+	@if ! command -v redis-server >/dev/null 2>&1; then \
+		echo "❌ Redis not found. Installing Redis..."; \
+		$(MAKE) install-redis; \
+	fi
 	redis-server --daemonize yes --port 6379
 	@echo "✅ Redis started on port 6379"
 
 stop-redis:
 	@echo "Stopping Redis server..."
-	redis-cli shutdown
+	@if command -v redis-cli >/dev/null 2>&1; then \
+		redis-cli shutdown; \
+	else \
+		echo "❌ redis-cli not found. Redis may not be installed."; \
+	fi
 	@echo "✅ Redis stopped"
 
 # Dependency management
@@ -192,7 +272,7 @@ check-env:
 	@echo "✅ Environment configuration found"
 
 # Full development workflow
-dev-setup: setup-dev start-redis
+dev-setup: setup-dev install-redis start-redis
 	@echo "🚀 Complete development environment ready!"
 	@echo "Run 'make run-dev' to start the development server"
 

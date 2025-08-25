@@ -13,7 +13,7 @@ from app.core.exceptions import TenderExtractionException, map_to_http_exception
 
 # Configure logging
 logging.basicConfig(
-    level=getattr(logging, settings.monitoring.log_level),
+    level=getattr(logging, settings.log_level),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
@@ -89,10 +89,10 @@ app = FastAPI(
 )
 
 # Add CORS middleware
-if settings.security.cors_enabled:
+if settings.cors_enabled:
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.security.allowed_origins,
+        allow_origins=settings.allowed_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE"],
         allow_headers=["*"],
