@@ -1,0 +1,170 @@
+# Multi-document template for batch tender analysis
+
+inherits: base
+
+multi_document_instructions: |
+  MULTI-DOCUMENT ANALYSIS APPROACH:
+  You are analyzing multiple documents that are part of the same tender/procurement process. These documents may contain:
+  - Main tender notice/invitation
+  - Technical specifications
+  - Terms and conditions
+  - Evaluation criteria
+  - Application forms
+  - Additional clarifications or amendments
+
+  PROCESSING STRATEGY:
+  1. First, identify the role/purpose of each document
+  2. Look for complementary information across documents
+  3. Prioritize the most authoritative document for conflicting information
+  4. Combine information to create a complete picture
+  5. Note any contradictions or inconsistencies between documents
+
+document_priority_hierarchy: |
+  When information conflicts between documents, use this priority order:
+  1. Official tender notice/invitation (highest priority)
+  2. Technical specifications
+  3. Terms and conditions
+  4. Evaluation criteria documents
+  5. Application forms and templates
+  6. Clarifications and amendments (time-stamped, latest first)
+  7. Supporting documents (lowest priority)
+
+cross_reference_strategy: |
+  CROSS-REFERENCING GUIDELINES:
+  - Project title: Use the most formal/complete version found
+  - Budget/Value: Look for consistency across documents, use highest authoritative source
+  - Deadline: Use the most recent/official deadline, note any extensions
+  - Requirements: Compile comprehensive list from all sources
+  - Evaluation criteria: Combine all criteria, ensure weights sum to 100%
+  - Contact information: Use most complete set available
+
+consolidation_rules: |
+  DATA CONSOLIDATION RULES:
+  - Merge lists (requirements, criteria) without duplication
+  - For conflicting dates, use the most recent authoritative source
+  - For conflicting values, note the discrepancy in ambiguities
+  - Combine contact information from multiple sources
+  - Aggregate technical requirements into comprehensive list
+
+multi_document_confidence: |
+  CONFIDENCE SCORING FOR MULTI-DOCUMENT ANALYSIS:
+  - 0.9-1.0: Information consistent across multiple authoritative documents
+  - 0.8-0.9: Information from primary document, supported by secondary sources
+  - 0.7-0.8: Information from primary document only, but clearly stated
+  - 0.6-0.7: Information pieced together from multiple sources
+  - 0.5-0.6: Information from secondary documents with some uncertainty
+  - 0.3-0.5: Conflicting information across documents, best interpretation used
+  - 0.0-0.3: Information not found or highly inconsistent across documents
+
+error_handling: |
+  HANDLING DOCUMENT INCONSISTENCIES:
+  - When dates conflict: Use latest authoritative date, note discrepancy
+  - When values differ: Use primary document value, note alternatives
+  - When requirements contradict: Include all versions, flag for clarification
+  - When contact info varies: Provide most complete set, note alternatives
+
+output_enhancements: |
+  ENHANCED OUTPUT FOR MULTI-DOCUMENT ANALYSIS:
+  In extraction_notes, include:
+  - source_documents: List of documents analyzed
+  - document_roles: Brief description of each document's purpose
+  - cross_references: Notes on how information was combined
+  - inconsistencies: Any conflicts found between documents
+  - completeness: Assessment of information completeness across all documents
+
+task_description: |
+  Analyze the provided set of tender/procurement documents as a cohesive unit. Extract comprehensive tender information by combining and consolidating data from all documents. Create a unified view of the procurement opportunity while noting any inconsistencies or gaps.
+
+  Focus on creating the most complete and accurate extraction possible by leveraging information from all provided documents.
+
+schema_definition: |
+  {
+    "extracted_data": {
+      "project_title": "string - Most formal/complete project name found across documents",
+      "contracting_authority": {
+        "name": "string - Full organization name from most authoritative document",
+        "address": {
+          "street": "string - Compiled from all available sources",
+          "city": "string",
+          "postal_code": "string",
+          "country": "string"
+        },
+        "contact_person": "string - Primary contact from most complete source",
+        "email": "string - Most official contact email",
+        "phone": "string - Most complete phone number"
+      },
+      "estimated_value": {
+        "amount": "number - From most authoritative source",
+        "currency": "string - Currency code",
+        "value_type": "enum - total|annual|hourly|daily",
+        "vat_included": "boolean",
+        "value_sources": "array - List which documents mentioned values"
+      },
+      "submission_deadline": "string - Most recent authoritative deadline (ISO 8601)",
+      "project_duration": "string - Compiled from all documents",
+      "contract_start_date": "string - Expected start date (ISO 8601)",
+      "evaluation_criteria": [
+        {
+          "criterion": "string - Combined from all evaluation documents",
+          "weight_percentage": "number - Ensure all weights sum to 100%",
+          "description": "string - Most detailed description available"
+        }
+      ],
+      "functional_requirements": [
+        "string - Comprehensive list compiled from all documents"
+      ],
+      "technical_requirements": [
+        "string - Complete technical specifications from all sources"
+      ],
+      "eligibility_criteria": [
+        "string - All qualification requirements from all documents"
+      ],
+      "knockout_criteria": [
+        "string - All mandatory requirements that disqualify if not met"
+      ],
+      "contract_type": "enum - supply|service|works|mixed",
+      "cpv_codes": [
+        "string - All CPV codes mentioned across documents"
+      ],
+      "procurement_procedure": "string - Most detailed procedure description",
+      "lot_structure": {
+        "is_divided": "boolean",
+        "lots": [
+          {
+            "lot_number": "string",
+            "title": "string",
+            "description": "string - Combined from all relevant documents",
+            "estimated_value": "object - Lot-specific values where available"
+          }
+        ]
+      },
+      "submission_requirements": {
+        "language": "string - Required submission language",
+        "format": "string - Required format",
+        "documents_required": [
+          "string - Complete list from all sources"
+        ]
+      },
+      "special_conditions": [
+        "string - All special terms from any document"
+      ],
+      "document_references": [
+        {
+          "document_name": "string - Name/title of each analyzed document",
+          "document_type": "string - tender_notice|specifications|terms|evaluation|other",
+          "key_information": "string - Summary of what this document contributed"
+        }
+      ]
+    }
+  }
+
+validation_rules: |
+  MULTI-DOCUMENT VALIDATION:
+  - Ensure deadline consistency across all documents
+  - Verify evaluation criteria weights sum to 100%
+  - Check that all referenced documents are accounted for
+  - Validate that combined requirements don't contradict each other
+  - Confirm contact information consistency
+  - Ensure monetary values use consistent currency
+  - Verify CPV codes follow proper format
+  - Check that submission requirements are complete and non-contradictory

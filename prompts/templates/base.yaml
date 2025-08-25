@@ -53,4 +53,4 @@ quality_checks: |
   - Check that percentages sum to 100% where applicable
   - Validate email addresses and phone numbers
   - Confirm CPV codes follow standard format
-  - Cross-check deadline consistency across document
+  - Cross-check deadline consistency across documents
