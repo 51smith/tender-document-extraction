@@ -19,6 +19,7 @@ from app.core.exceptions import (
     ServiceUnavailableError,
 )
 from app.core.rate_limiter import get_rate_limiter
+from app.services.llm_service import get_llm_service, BaseLLMService
 
 logger = logging.getLogger(__name__)
 
@@ -32,51 +33,57 @@ class GeminiClient:
         self._client = None
         self._file_client = None
         self._model = None
+        self._llm_service: Optional[BaseLLMService] = None
         self._initialize_client()
 
     def _initialize_client(self) -> None:
         """Initialize the Gemini client."""
         try:
-            genai.configure(api_key=self.settings.google_api_key)
+            # Initialize the new configurable LLM service
+            self._llm_service = get_llm_service()
+            
+            # Keep legacy Gemini-specific initialization for file uploads if using Gemini
+            if settings.llm_provider == "gemini":
+                genai.configure(api_key=self.settings.google_api_key)
 
-            # Configure safety settings for document processing
-            safety_settings = [
-                {
-                    "category": HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-                    "threshold": HarmBlockThreshold.BLOCK_NONE,
-                },
-                {
-                    "category": HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-                    "threshold": HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                },
-                {
-                    "category": HarmCategory.HARM_CATEGORY_HARASSMENT,
-                    "threshold": HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                },
-                {
-                    "category": HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-                    "threshold": HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                },
-            ]
+                # Configure safety settings for document processing
+                safety_settings = [
+                    {
+                        "category": HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                        "threshold": HarmBlockThreshold.BLOCK_NONE,
+                    },
+                    {
+                        "category": HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                        "threshold": HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                    },
+                    {
+                        "category": HarmCategory.HARM_CATEGORY_HARASSMENT,
+                        "threshold": HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                    },
+                    {
+                        "category": HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                        "threshold": HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                    },
+                ]
 
-            # Configure generation parameters
-            generation_config = genai.types.GenerationConfig(
-                temperature=self.settings.gemini_temperature,
-                top_p=0.9,
-                top_k=40,
-                max_output_tokens=self.settings.gemini_max_tokens,
-            )
+                # Configure generation parameters
+                generation_config = genai.types.GenerationConfig(
+                    temperature=self.settings.llm_temperature,
+                    top_p=0.9,
+                    top_k=40,
+                    max_output_tokens=self.settings.llm_max_tokens,
+                )
 
-            self._model = genai.GenerativeModel(
-                model_name=self.settings.gemini_model,
-                generation_config=generation_config,
-                safety_settings=safety_settings,
-            )
+                self._model = genai.GenerativeModel(
+                    model_name=self.settings.llm_model,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings,
+                )
 
-            # Initialize the new client for file uploads
-            self._file_client = genai_client.Client(api_key=self.settings.google_api_key)
+                # Initialize the new client for file uploads
+                self._file_client = genai_client.Client(api_key=self.settings.google_api_key)
 
-            logger.info(f"Gemini client initialized with model: {self.settings.gemini_model}")
+            logger.info(f"LLM client initialized with provider: {settings.llm_provider}, model: {settings.llm_model}")
 
         except Exception as e:
             logger.error(f"Failed to initialize Gemini client: {e}")
@@ -133,7 +140,7 @@ class GeminiClient:
 
                 # Add metadata
                 result["_metadata"] = {
-                    "model": self.settings.gemini_model,
+                    "model": self.settings.llm_model,
                     "processing_time": processing_time,
                     "estimated_tokens": estimated_tokens,
                     "actual_tokens": actual_tokens,
@@ -162,7 +169,7 @@ class GeminiClient:
 
             except google_exceptions.InvalidArgument as e:
                 # Don't retry invalid arguments
-                raise GeminiModelError(str(e), self.settings.gemini_model)
+                raise GeminiModelError(str(e), self.settings.llm_model)
 
             except google_exceptions.GoogleAPICallError as e:
                 last_exception = GeminiAPIException(f"Google API error: {str(e)}")
@@ -216,7 +223,7 @@ class GeminiClient:
 
             if not response or not response.text:
                 logger.error(f"Empty response from Gemini API. Response: {response}")
-                raise GeminiModelError("Empty response from Gemini API", self.settings.gemini_model)
+                raise GeminiModelError("Empty response from Gemini API", self.settings.llm_model)
 
             # Try to parse as JSON
             try:
@@ -256,22 +263,29 @@ class GeminiClient:
 
         except Exception as e:
             raise GeminiModelError(
-                f"Failed to parse response: {str(e)}", self.settings.gemini_model
+                f"Failed to parse response: {str(e)}", self.settings.llm_model
             )
 
     async def test_connection(self) -> Dict[str, Any]:
-        """Test the Gemini API connection."""
+        """Test the LLM API connection."""
         try:
-            test_prompt = "Please respond with a JSON object: {'test': true, 'message': 'Connection successful'}"
-
-            result = await self.generate_content(test_prompt, timeout=30.0, retry_attempts=1)
-
-            return {
-                "status": "success",
-                "model": self.settings.gemini_model,
-                "response": result,
-                "rate_limits": self.rate_limiter.get_current_limits(),
-            }
+            # Test the new LLM service health check
+            if await self._llm_service.health_check():
+                provider_info = self._llm_service.get_provider_info()
+                result = {
+                    "status": "success",
+                    "message": f"{settings.llm_provider} connection successful",
+                }
+                result.update(provider_info)
+                return result
+            else:
+                provider_info = self._llm_service.get_provider_info()
+                result = {
+                    "status": "error",
+                    "error": "Health check failed",
+                }
+                result.update(provider_info)
+                return result
 
         except Exception as e:
             return {"status": "error", "error": str(e), "error_type": type(e).__name__}
@@ -284,6 +298,10 @@ class GeminiClient:
         retry_attempts: int = 3,
     ) -> Dict[str, Any]:
         """Process multiple documents in a single API call using File API."""
+        
+        # Only process with Gemini if the provider is actually Gemini
+        if settings.llm_provider != "gemini":
+            raise ValueError(f"Multi-document processing with File API only available for Gemini provider, current provider is {settings.llm_provider}")
 
         uploaded_files = []
 
@@ -341,7 +359,7 @@ class GeminiClient:
 
                     # Add metadata
                     result["_metadata"] = {
-                        "model": self.settings.gemini_model,
+                        "model": self.settings.llm_model,
                         "processing_time": processing_time,
                         "estimated_tokens": estimated_tokens,
                         "actual_tokens": actual_tokens,
@@ -374,7 +392,7 @@ class GeminiClient:
                         await asyncio.sleep(wait_time)
 
                 except google_exceptions.InvalidArgument as e:
-                    raise GeminiModelError(str(e), self.settings.gemini_model)
+                    raise GeminiModelError(str(e), self.settings.llm_model)
 
                 except google_exceptions.GoogleAPICallError as e:
                     last_exception = GeminiAPIException(f"Google API error: {str(e)}")
@@ -426,7 +444,7 @@ class GeminiClient:
             return await loop.run_in_executor(
                 None,
                 lambda: self._file_client.models.generate_content(
-                    model=self.settings.gemini_model, contents=contents
+                    model=self.settings.llm_model, contents=contents
                 ),
             )
         except Exception as e:
@@ -438,7 +456,8 @@ class GeminiClient:
         return {
             "rate_limits": self.rate_limiter.get_current_limits(),
             "stats": self.rate_limiter.get_stats(),
-            "model": self.settings.gemini_model,
+            "provider": settings.llm_provider,
+            "model": settings.llm_model,
         }
 
 

@@ -134,6 +134,39 @@ class ServiceUnavailableError(TenderExtractionException):
     pass
 
 
+# Generic LLM exceptions for multi-provider support
+class LLMError(TenderExtractionException):
+    """Generic LLM service error."""
+
+    pass
+
+
+class LLMRateLimitError(LLMError):
+    """LLM service rate limit exceeded."""
+
+    def __init__(self, provider: str = "LLM", retry_after: Optional[int] = None):
+        self.provider = provider
+        self.retry_after = retry_after
+        super().__init__(
+            f"{provider} rate limit exceeded",
+            details={"provider": provider, "retry_after": retry_after},
+            error_code="LLM_RATE_LIMIT",
+        )
+
+
+class LLMQuotaExceededError(LLMError):
+    """LLM service quota exceeded."""
+
+    def __init__(self, provider: str = "LLM", quota_type: str = "monthly"):
+        self.provider = provider
+        self.quota_type = quota_type
+        super().__init__(
+            f"{provider} {quota_type} quota exceeded",
+            details={"provider": provider, "quota_type": quota_type},
+            error_code="LLM_QUOTA_EXCEEDED",
+        )
+
+
 # HTTP Exception mappings
 def map_to_http_exception(exc: TenderExtractionException) -> HTTPException:
     """Map internal exceptions to HTTP exceptions."""
