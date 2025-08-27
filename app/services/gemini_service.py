@@ -19,7 +19,7 @@ from app.core.exceptions import (
     ServiceUnavailableError,
 )
 from app.core.rate_limiter import get_rate_limiter
-from app.services.llm_service import get_llm_service, BaseLLMService
+from app.services.llm_service import BaseLLMService, get_llm_service
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ class GeminiClient:
         try:
             # Initialize the new configurable LLM service
             self._llm_service = get_llm_service()
-            
+
             # Keep legacy Gemini-specific initialization for file uploads if using Gemini
             if settings.llm_provider == "gemini":
                 genai.configure(api_key=self.settings.google_api_key)
@@ -83,7 +83,9 @@ class GeminiClient:
                 # Initialize the new client for file uploads
                 self._file_client = genai_client.Client(api_key=self.settings.google_api_key)
 
-            logger.info(f"LLM client initialized with provider: {settings.llm_provider}, model: {settings.llm_model}")
+            logger.info(
+                f"LLM client initialized with provider: {settings.llm_provider}, model: {settings.llm_model}"
+            )
 
         except Exception as e:
             logger.error(f"Failed to initialize Gemini client: {e}")
@@ -194,9 +196,11 @@ class GeminiClient:
         """Make async API call to configured LLM provider."""
         try:
             # Check if we're using Gemini and have the legacy model for multimodal content
-            if (settings.llm_provider == "gemini" and 
-                self._model is not None and 
-                isinstance(prompt, list)):
+            if (
+                settings.llm_provider == "gemini"
+                and self._model is not None
+                and isinstance(prompt, list)
+            ):
                 # Use Gemini's native multimodal processing
                 loop = asyncio.get_event_loop()
                 return await loop.run_in_executor(None, self._model.generate_content, prompt)
@@ -208,26 +212,35 @@ class GeminiClient:
                     for item in prompt:
                         if isinstance(item, str):
                             text_content += item + "\n"
-                        elif hasattr(item, 'text'):
+                        elif hasattr(item, "text"):
                             text_content += item.text + "\n"
                     prompt = text_content.strip()
-                
+
                 # Use the LLM service which handles provider routing
-                response = await self._llm_service.generate_content(prompt, json_schema={"type": "object"})
-                
+                response = await self._llm_service.generate_content(
+                    prompt, json_schema={"type": "object"}
+                )
+
                 # Convert LLM service response to Gemini-like response format for compatibility
                 class CompatibleResponse:
                     def __init__(self, text_content):
                         if isinstance(text_content, dict) and "response" in text_content:
                             self.text = text_content["response"]
-                            self.usage_metadata = text_content.get("usage", {})
+                            usage_data = text_content.get("usage", {})
                         elif isinstance(text_content, dict):
                             self.text = json.dumps(text_content)
-                            self.usage_metadata = {}
+                            usage_data = {}
                         else:
                             self.text = str(text_content)
-                            self.usage_metadata = {}
-                
+                            usage_data = {}
+                        
+                        # Create a mock usage_metadata object that behaves like Gemini's
+                        class UsageMetadata:
+                            def __init__(self, usage_dict):
+                                self.total_token_count = usage_dict.get("total_token_count", 0)
+                        
+                        self.usage_metadata = UsageMetadata(usage_data)
+
                 return CompatibleResponse(response)
         except Exception as e:
             logger.error(f"Error in _generate_content_async: {e}")
@@ -295,9 +308,7 @@ class GeminiClient:
                 }
 
         except Exception as e:
-            raise GeminiModelError(
-                f"Failed to parse response: {str(e)}", self.settings.llm_model
-            )
+            raise GeminiModelError(f"Failed to parse response: {str(e)}", self.settings.llm_model)
 
     async def test_connection(self) -> Dict[str, Any]:
         """Test the LLM API connection."""
@@ -331,10 +342,12 @@ class GeminiClient:
         retry_attempts: int = 3,
     ) -> Dict[str, Any]:
         """Process multiple documents in a single API call using File API."""
-        
+
         # Only process with Gemini if the provider is actually Gemini
         if settings.llm_provider != "gemini":
-            raise ValueError(f"Multi-document processing with File API only available for Gemini provider, current provider is {settings.llm_provider}")
+            raise ValueError(
+                f"Multi-document processing with File API only available for Gemini provider, current provider is {settings.llm_provider}"
+            )
 
         uploaded_files = []
 

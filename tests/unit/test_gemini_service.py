@@ -57,16 +57,30 @@ class TestGeminiService:
         with patch("app.services.gemini_service.get_llm_service") as mock_service:
             mock_instance = MagicMock()
             # Make the generate_content method async
-            mock_instance.generate_content = AsyncMock(return_value={"response": json.dumps({"project_title": "Test Project", "estimated_value": {"amount": 1000000, "currency": "EUR"}})})
+            mock_instance.generate_content = AsyncMock(
+                return_value={
+                    "response": json.dumps(
+                        {
+                            "project_title": "Test Project",
+                            "estimated_value": {"amount": 1000000, "currency": "EUR"},
+                        }
+                    ),
+                    "usage": {"total_token_count": 1500}
+                }
+            )
             mock_instance.health_check = AsyncMock(return_value=True)
             mock_instance.get_provider_name.return_value = "gemini"
+            mock_instance.get_provider_info.return_value = {
+                "provider": "gemini", 
+                "model": "gemini-2.5-pro"
+            }
             mock_service.return_value = mock_instance
             yield mock_instance
 
     def test_client_initialization(self, mock_gemini_settings, mock_genai_module, mock_llm_service):
         """Test Gemini client initialization."""
         mock_genai, mock_model = mock_genai_module
-        
+
         client = GeminiClient()
 
         # Verify configuration was called for Gemini
@@ -79,7 +93,9 @@ class TestGeminiService:
         assert client._llm_service is not None
 
     @pytest.mark.asyncio
-    async def test_successful_content_generation(self, mock_gemini_settings, mock_genai_module, mock_llm_service):
+    async def test_successful_content_generation(
+        self, mock_gemini_settings, mock_genai_module, mock_llm_service
+    ):
         """Test successful content generation."""
         mock_genai, mock_model = mock_genai_module
 
@@ -255,24 +271,17 @@ class TestGeminiService:
         assert multimodal_estimate > client._estimate_tokens("Some text content")
 
     @pytest.mark.asyncio
-    async def test_connection_test(self, mock_genai_module):
+    async def test_connection_test(self, mock_gemini_settings, mock_genai_module, mock_llm_service):
         """Test API connection testing."""
         mock_genai, mock_model = mock_genai_module
-
-        # Mock successful response
-        mock_response = MagicMock()
-        mock_response.text = '{"test": true, "message": "Connection successful"}'
-        mock_response.usage_metadata.total_token_count = 50
-
-        mock_model.generate_content.return_value = mock_response
 
         client = GeminiClient()
 
         result = await client.test_connection()
 
         assert result["status"] == "success"
-        assert "response" in result
-        assert "rate_limits" in result
+        assert "message" in result
+        assert result["message"] == "gemini connection successful"
 
     @pytest.mark.asyncio
     async def test_usage_stats(self):

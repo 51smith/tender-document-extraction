@@ -98,19 +98,19 @@ async def llm_health_check(gemini_client: GeminiClient = Depends(get_gemini_clie
     """
     try:
         test_result = await gemini_client.test_connection()
-        
+
         # Only include usage stats if it's relevant (Gemini with rate limits)
         response = {
             "status": "healthy" if test_result["status"] == "success" else "unhealthy",
             "connection_test": test_result,
             "timestamp": datetime.utcnow().isoformat(),
         }
-        
+
         # Add usage stats only for providers that have rate limiting
         if settings.llm_provider == "gemini":
             usage_stats = gemini_client.get_usage_stats()
             response["usage_stats"] = usage_stats
-        
+
         return response
 
     except Exception as e:
@@ -123,7 +123,6 @@ async def llm_health_check(gemini_client: GeminiClient = Depends(get_gemini_clie
                 "timestamp": datetime.utcnow().isoformat(),
             },
         )
-
 
 
 @router.get("/health/redis")
