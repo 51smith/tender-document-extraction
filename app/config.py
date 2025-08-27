@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import List
+from typing import List, Literal, Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -17,13 +17,26 @@ class Settings(BaseSettings):
     debug: bool = Field(default=False, env="DEBUG")
     api_version: str = Field(default="v1", env="API_VERSION")
 
+    # LLM Backend Configuration
+    llm_provider: Literal["gemini", "openai", "ollama"] = Field(
+        default="gemini", env="LLM_PROVIDER"
+    )
+    llm_model: str = Field(default="gemini-2.5-pro", env="LLM_MODEL")
+    llm_temperature: float = Field(default=0.1, env="LLM_TEMPERATURE")
+    llm_max_tokens: int = Field(default=8192, env="LLM_MAX_TOKENS")
+
     # Google Gemini AI configuration
-    google_api_key: str = Field(..., env="GOOGLE_API_KEY")
-    gemini_model: str = Field(default="gemini-2.5-pro", env="GEMINI_MODEL")
-    gemini_temperature: float = Field(default=0.1, env="GEMINI_TEMPERATURE")
-    gemini_max_tokens: int = Field(default=8192, env="GEMINI_MAX_TOKENS")
+    google_api_key: Optional[str] = Field(default=None, env="GOOGLE_API_KEY")
     gemini_rate_limit_rpm: int = Field(default=300, env="GEMINI_RATE_LIMIT_RPM")
     gemini_rate_limit_tpm: int = Field(default=50000, env="GEMINI_RATE_LIMIT_TPM")
+
+    # OpenAI Configuration
+    openai_api_key: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
+    openai_base_url: Optional[str] = Field(default=None, env="OPENAI_BASE_URL")
+
+    # Ollama Configuration
+    ollama_base_url: str = Field(default="http://localhost:11434", env="OLLAMA_BASE_URL")
+    ollama_timeout: int = Field(default=300, env="OLLAMA_TIMEOUT")  # 5 minutes for slow responses
 
     # Redis configuration
     redis_url: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
@@ -48,19 +61,27 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
     enable_metrics: bool = Field(default=True, env="ENABLE_METRICS")
 
-    @field_validator("gemini_temperature")
+    @field_validator("llm_temperature")
     @classmethod
     def validate_temperature(cls, v):
         if not 0.0 <= v <= 2.0:
             raise ValueError("Temperature must be between 0.0 and 2.0")
         return v
 
-    @field_validator("google_api_key")
+    @field_validator("llm_provider")
     @classmethod
-    def validate_api_key(cls, v):
-        if not v or len(v) < 10:
-            raise ValueError("Valid Google API key is required")
+    def validate_llm_provider(cls, v):
+        valid_providers = ["gemini", "openai", "ollama"]
+        if v not in valid_providers:
+            raise ValueError(f"LLM provider must be one of: {valid_providers}")
         return v
+
+    def model_post_init(self, __context):
+        """Validate provider-specific API keys after model initialization."""
+        if self.llm_provider == "gemini" and not self.google_api_key:
+            raise ValueError("Google API key is required when using Gemini provider")
+        elif self.llm_provider == "openai" and not self.openai_api_key:
+            raise ValueError("OpenAI API key is required when using OpenAI provider")
 
     @field_validator("max_file_size")
     @classmethod

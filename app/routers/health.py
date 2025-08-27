@@ -48,17 +48,17 @@ async def detailed_health_check(
 
     overall_healthy = True
 
-    # Check Gemini API
+    # Check LLM Provider
     try:
-        gemini_test = await gemini_client.test_connection()
-        health_status["services"]["gemini"] = {
-            "status": "healthy" if gemini_test["status"] == "success" else "unhealthy",
-            "details": gemini_test,
+        llm_test = await gemini_client.test_connection()
+        health_status["services"]["llm_provider"] = {
+            "status": "healthy" if llm_test["status"] == "success" else "unhealthy",
+            "details": llm_test,
         }
-        if gemini_test["status"] != "success":
+        if llm_test["status"] != "success":
             overall_healthy = False
     except Exception as e:
-        health_status["services"]["gemini"] = {"status": "unhealthy", "error": str(e)}
+        health_status["services"]["llm_provider"] = {"status": "unhealthy", "error": str(e)}
         overall_healthy = False
 
     # Check Redis/Job Manager
@@ -91,24 +91,30 @@ async def detailed_health_check(
         return JSONResponse(status_code=503, content=health_status)
 
 
-@router.get("/health/gemini")
-async def gemini_health_check(gemini_client: GeminiClient = Depends(get_gemini_client)):
+@router.get("/health/llm")
+async def llm_health_check(gemini_client: GeminiClient = Depends(get_gemini_client)):
     """
-    Specific health check for Gemini API connectivity.
+    Specific health check for LLM provider connectivity.
     """
     try:
         test_result = await gemini_client.test_connection()
-        usage_stats = gemini_client.get_usage_stats()
-
-        return {
+        
+        # Only include usage stats if it's relevant (Gemini with rate limits)
+        response = {
             "status": "healthy" if test_result["status"] == "success" else "unhealthy",
             "connection_test": test_result,
-            "usage_stats": usage_stats,
             "timestamp": datetime.utcnow().isoformat(),
         }
+        
+        # Add usage stats only for providers that have rate limiting
+        if settings.llm_provider == "gemini":
+            usage_stats = gemini_client.get_usage_stats()
+            response["usage_stats"] = usage_stats
+        
+        return response
 
     except Exception as e:
-        logger.error(f"Gemini health check failed: {e}")
+        logger.error(f"LLM health check failed: {e}")
         return JSONResponse(
             status_code=503,
             content={
@@ -117,6 +123,7 @@ async def gemini_health_check(gemini_client: GeminiClient = Depends(get_gemini_c
                 "timestamp": datetime.utcnow().isoformat(),
             },
         )
+
 
 
 @router.get("/health/redis")
@@ -158,10 +165,10 @@ async def readiness_check(
     try:
         # Quick check of critical dependencies
 
-        # Test Gemini API with minimal request
+        # Test LLM provider with minimal request
         usage_stats = gemini_client.get_usage_stats()
         if not usage_stats:
-            raise Exception("Gemini client not initialized")
+            raise Exception("LLM client not initialized")
 
         # Test Redis connection
         await job_manager.get_job_statistics()

@@ -22,6 +22,7 @@ from app.models.extraction import (
     TenderExtractionResult,
 )
 from app.services.gemini_service import get_gemini_client
+from app.services.llm_service import get_llm_service
 from app.services.job_manager import get_job_manager
 from app.utils.document_processor import DocumentContent, get_document_processor
 from app.utils.prompt_builder import get_prompt_builder
@@ -33,10 +34,23 @@ class ExtractionService:
     """Core document extraction service."""
 
     def __init__(self):
-        self.gemini_client = get_gemini_client()
+        self.llm_service = get_llm_service()  # New configurable LLM service
         self.document_processor = get_document_processor()
         self.prompt_builder = get_prompt_builder()
         self.job_manager = get_job_manager()
+        
+        # Log the provider configuration for debugging
+        logger.info(f"ExtractionService initialized with LLM provider: {self.llm_service.get_provider_name()}")
+        logger.info(f"ExtractionService LLM model: {self.llm_service.model}")
+        logger.info(f"ExtractionService provider info: {self.llm_service.get_provider_info()}")
+        
+        # Only initialize Gemini client if provider is Gemini (for multimodal and File API features)
+        if self.llm_service.get_provider_name() == "gemini":
+            logger.info("Initializing Gemini client for multimodal features")
+            self.gemini_client = get_gemini_client()
+        else:
+            logger.info(f"Gemini client not initialized (using {self.llm_service.get_provider_name()} provider)")
+            self.gemini_client = None
 
     async def _process_document_content(
         self, document_content: bytes, request: DocumentExtractionRequest
@@ -74,12 +88,42 @@ class ExtractionService:
             else:
                 content = prompt_result["prompt"]
 
-            # Extract using Gemini
+            # Extract using configured LLM provider
             logger.info(f"Extracting data from: {request.filename}")
-            ai_response = await self.gemini_client.generate_content(content)
-
-            # Parse and validate response
-            extraction_result = self._parse_ai_response(ai_response, processed_doc)
+            if isinstance(content, list):  # Multimodal content - requires Gemini client
+                if self.gemini_client is None:
+                    logger.warning("Multimodal content requested but Gemini client not available. Converting to text-only.")
+                    # Convert multimodal content to text-only for non-Gemini providers
+                    content = prompt_result["prompt"]
+                    ai_response = await self.llm_service.generate_content(content, json_schema={"type": "object"})
+                    # Handle LLM service response format
+                    if isinstance(ai_response, dict) and "response" in ai_response:
+                        try:
+                            import json
+                            actual_response = json.loads(ai_response["response"])
+                        except (json.JSONDecodeError, TypeError):
+                            actual_response = ai_response
+                    else:
+                        actual_response = ai_response
+                    extraction_result = self._parse_ai_response(actual_response, processed_doc)
+                else:
+                    # Use Gemini client for multimodal content
+                    ai_response = await self.gemini_client.generate_content(content)
+                    extraction_result = self._parse_ai_response(ai_response, processed_doc)
+            else:  # Text-only content - use configurable LLM service
+                ai_response = await self.llm_service.generate_content(content, json_schema={"type": "object"})
+                
+                # Handle LLM service response format
+                if isinstance(ai_response, dict) and "response" in ai_response:
+                    try:
+                        import json
+                        actual_response = json.loads(ai_response["response"])
+                    except (json.JSONDecodeError, TypeError):
+                        actual_response = ai_response
+                else:
+                    actual_response = ai_response
+                
+                extraction_result = self._parse_ai_response(actual_response, processed_doc)
 
             # Add processing metadata
             processing_time = time.time() - start_time
@@ -113,25 +157,35 @@ class ExtractionService:
     async def _process_multiple_documents(
         self, documents: Dict[str, bytes], batch_request: BatchExtractionRequest
     ) -> TenderExtractionResult:
-        """Process multiple documents in a single Gemini API call."""
+        """Process multiple documents using the configured LLM provider."""
 
         start_time = time.time()
 
         try:
-            logger.info(f"Processing {len(documents)} documents together with Gemini API")
+            logger.info(f"Processing {len(documents)} documents together with {self.llm_service.get_provider_name()} provider")
+            logger.info(f"Gemini client is: {'None' if self.gemini_client is None else 'initialized'}")
+            logger.info(f"Provider check: llm_service.get_provider_name() == 'gemini': {self.llm_service.get_provider_name() == 'gemini'}")
+            logger.info(f"Gemini client check: self.gemini_client is not None: {self.gemini_client is not None}")
+            
+            # Check provider and route accordingly
+            if (self.llm_service.get_provider_name() == "gemini" and 
+                self.gemini_client is not None and 
+                hasattr(self.gemini_client, 'process_multiple_documents')):
+                logger.info("USING GEMINI PATH: Using Gemini File API for multi-document processing")
+                # Use Gemini's File API for multi-document processing
+                
+                # Build a comprehensive prompt for all documents using multi-document template
+                prompt_result = self.prompt_builder.build_prompt(
+                    document_content="",  # We'll let Gemini analyze the uploaded files directly
+                    config_name=batch_request.documents[0].config_name
+                    if batch_request.documents
+                    else "default",
+                    template_override="multi_document_extraction",  # Use multi-document template
+                    variables=batch_request.documents[0].variables if batch_request.documents else None,
+                )
 
-            # Build a comprehensive prompt for all documents using multi-document template
-            prompt_result = self.prompt_builder.build_prompt(
-                document_content="",  # We'll let Gemini analyze the uploaded files directly
-                config_name=batch_request.documents[0].config_name
-                if batch_request.documents
-                else "default",
-                template_override="multi_document_extraction",  # Use multi-document template
-                variables=batch_request.documents[0].variables if batch_request.documents else None,
-            )
-
-            # Create a multi-document analysis prompt
-            multi_doc_prompt = f"""
+                # Create a multi-document analysis prompt
+                multi_doc_prompt = f"""
 {prompt_result['prompt']}
 
 MULTI-DOCUMENT ANALYSIS INSTRUCTIONS:
@@ -148,10 +202,75 @@ If there are contradictions between documents, note them in the extraction_notes
 Return the consolidated extraction results in the specified JSON format.
 """
 
-            # Use the new multi-document processing method
-            ai_response = await self.gemini_client.process_multiple_documents(
-                documents=documents, prompt=multi_doc_prompt
-            )
+                # Use the new multi-document processing method
+                ai_response = await self.gemini_client.process_multiple_documents(
+                    documents=documents, prompt=multi_doc_prompt
+                )
+            else:
+                # For other providers (Ollama, OpenAI), process documents by concatenating text
+                logger.info(f"USING NON-GEMINI PATH: Processing documents individually with {self.llm_service.get_provider_name()} provider")
+                logger.info(f"Using text concatenation approach for non-Gemini provider")
+                
+                # Process all documents and extract text
+                all_document_texts = []
+                document_summaries = []
+                
+                for filename, content in documents.items():
+                    try:
+                        processed_doc = self.document_processor.process_document(
+                            content, filename, content_type=None
+                        )
+                        all_document_texts.append(f"=== DOCUMENT: {filename} ===\n{processed_doc.text}\n")
+                        document_summaries.append(f"- {filename} ({len(processed_doc.text)} characters)")
+                    except Exception as e:
+                        logger.warning(f"Failed to process {filename}: {e}")
+                        document_summaries.append(f"- {filename} (processing failed: {str(e)})")
+
+                # Build a comprehensive prompt for all documents
+                prompt_result = self.prompt_builder.build_prompt(
+                    document_content="",  # We'll include document content in the prompt
+                    config_name=batch_request.documents[0].config_name
+                    if batch_request.documents
+                    else "default",
+                    template_override="multi_document_extraction",  # Use multi-document template
+                    variables=batch_request.documents[0].variables if batch_request.documents else None,
+                )
+
+                # Create combined document content
+                combined_content = "\n".join(all_document_texts)
+                
+                # Create a multi-document analysis prompt
+                multi_doc_prompt = f"""
+{prompt_result['prompt']}
+
+MULTI-DOCUMENT ANALYSIS INSTRUCTIONS:
+You have been provided with {len(documents)} documents that should be analyzed together as they may contain related information for the same tender/project.
+
+Documents provided:
+{chr(10).join(document_summaries)}
+
+Please analyze ALL documents together and extract the complete tender information. Information may be spread across multiple documents - combine and consolidate the data appropriately.
+
+If the same information appears in multiple documents, use the most complete or recent version.
+If there are contradictions between documents, note them in the extraction_notes.ambiguities field.
+
+DOCUMENT CONTENTS:
+{combined_content}
+
+Return the consolidated extraction results in the specified JSON format.
+"""
+
+                # Use the configurable LLM service
+                logger.info(f"Making LLM API call using {self.llm_service.get_provider_name()} provider")
+                try:
+                    ai_response = await self.llm_service.generate_content(
+                        prompt=multi_doc_prompt,
+                        json_schema={"type": "object"}  # Request JSON response
+                    )
+                    logger.info(f"LLM API call successful, response type: {type(ai_response)}")
+                except Exception as e:
+                    logger.error(f"LLM API call failed: {e} (type: {type(e)})")
+                    raise
 
             # Create a combined document object for parsing (use first document as template)
             first_filename = list(documents.keys())[0]
@@ -181,8 +300,27 @@ Return the consolidated extraction results in the specified JSON format.
                     file_size=len(first_content),
                 )
 
-            # Parse the AI response (this should work regardless of document processing)
-            extraction_result = self._parse_ai_response(ai_response, processed_doc)
+            # Parse the AI response - handle different response formats from different providers
+            if (self.llm_service.get_provider_name() == "gemini" and 
+                self.gemini_client is not None and 
+                hasattr(self.gemini_client, 'process_multiple_documents')):
+                # Gemini client response format
+                extraction_result = self._parse_ai_response(ai_response, processed_doc)
+            else:
+                # LLM service response format - extract the actual content
+                if isinstance(ai_response, dict) and "response" in ai_response:
+                    # The response is wrapped in a dict with "response" key for text-based providers
+                    try:
+                        import json
+                        actual_response = json.loads(ai_response["response"])
+                    except (json.JSONDecodeError, TypeError):
+                        # If not valid JSON, treat as the raw AI response
+                        actual_response = ai_response
+                else:
+                    # Direct JSON response
+                    actual_response = ai_response
+                
+                extraction_result = self._parse_ai_response(actual_response, processed_doc)
 
             # Add multi-document processing metadata
             processing_time = time.time() - start_time
@@ -363,8 +501,17 @@ Return the consolidated extraction results in the specified JSON format.
 # Worker function for RQ
 def process_extraction_job(job_id: str, request_data: Dict[str, Any]):
     """Process a document extraction job (RQ worker function)."""
-
+    
+    import os
+    from app.config import settings
+    
     logger.info(f"Starting extraction job: {job_id}")
+    logger.info(f"RQ WORKER ENV - LLM_PROVIDER: {os.getenv('LLM_PROVIDER', 'not set')}")
+    logger.info(f"RQ WORKER ENV - LLM_MODEL: {os.getenv('LLM_MODEL', 'not set')}")
+    logger.info(f"RQ WORKER ENV - GOOGLE_API_KEY set: {bool(os.getenv('GOOGLE_API_KEY'))}")
+    logger.info(f"RQ WORKER SETTINGS - llm_provider: {settings.llm_provider}")
+    logger.info(f"RQ WORKER SETTINGS - llm_model: {settings.llm_model}")
+    logger.info(f"RQ WORKER SETTINGS - google_api_key set: {bool(settings.google_api_key)}")
 
     # Run the async extraction in a new event loop
     loop = asyncio.new_event_loop()
@@ -405,8 +552,12 @@ def process_extraction_job(job_id: str, request_data: Dict[str, Any]):
 
 async def _process_job_async(job_id: str, request_data: Dict[str, Any]) -> Any:
     """Async processing of extraction job."""
-
+    
+    logger.info(f"Creating ExtractionService instance for job: {job_id}")
     service = ExtractionService()
+    logger.info(f"RQ JOB SERVICE - Provider: {service.llm_service.get_provider_name()}")
+    logger.info(f"RQ JOB SERVICE - Model: {service.llm_service.model}")
+    logger.info(f"RQ JOB SERVICE - Gemini client: {'None' if service.gemini_client is None else 'initialized'}")
 
     # Create a fresh job manager instance for this event loop
     from app.services.job_manager import JobManager

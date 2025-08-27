@@ -494,7 +494,7 @@ If Claude skips testing, the user should remind Claude that testing is mandatory
 ---
 
 ## 🔀 Git Workflow Best Practices
-- [ ] Use **feature branches** for new work (e.g., `feature/add-auth`).  
+- [ ] **You must Always Use feature branches** for new work! (e.g., `feature/add-auth`).  
 - [ ] Keep **main branch stable** — always production-ready.  
 - [ ] Use **pull requests (PRs)** for merging into main.  
 - [ ] Require **code reviews** before merging.  
