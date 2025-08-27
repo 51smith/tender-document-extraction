@@ -122,7 +122,7 @@ class TestGeminiService:
         assert result["_metadata"]["actual_tokens"] == 1500
 
     @pytest.mark.asyncio
-    async def test_json_parsing_from_markdown(self, mock_genai_module):
+    async def test_json_parsing_from_markdown(self, mock_gemini_settings, mock_genai_module, mock_llm_service):
         """Test JSON parsing from markdown code blocks."""
         mock_genai, mock_model = mock_genai_module
 
@@ -144,14 +144,15 @@ class TestGeminiService:
 
         client = GeminiClient()
 
-        result = await client.generate_content("Test prompt")
+        # Use a list to trigger Gemini model path instead of LLM service path
+        result = await client.generate_content(["Test prompt"])
 
         # Verify JSON was extracted from markdown
         assert "project_title" in result
         assert result["project_title"] == "Highway Project"
 
     @pytest.mark.asyncio
-    async def test_rate_limit_handling(self, mock_genai_module):
+    async def test_rate_limit_handling(self, mock_gemini_settings, mock_genai_module, mock_llm_service):
         """Test rate limit error handling and retries."""
         mock_genai, mock_model = mock_genai_module
 
@@ -165,15 +166,15 @@ class TestGeminiService:
 
         client = GeminiClient()
 
-        # Should succeed after retry
-        result = await client.generate_content("Test prompt")
+        # Should succeed after retry - use list to trigger Gemini path
+        result = await client.generate_content(["Test prompt"])
         assert "success" in result
 
         # Verify it was called twice (original + retry)
         assert mock_model.generate_content.call_count == 2
 
     @pytest.mark.asyncio
-    async def test_quota_exceeded_error(self, mock_genai_module):
+    async def test_quota_exceeded_error(self, mock_gemini_settings, mock_genai_module, mock_llm_service):
         """Test quota exceeded error handling."""
         mock_genai, mock_model = mock_genai_module
 
@@ -185,10 +186,10 @@ class TestGeminiService:
         client = GeminiClient()
 
         with pytest.raises(GeminiQuotaExceededError):
-            await client.generate_content("Test prompt")
+            await client.generate_content(["Test prompt"])
 
     @pytest.mark.asyncio
-    async def test_invalid_argument_error(self, mock_genai_module):
+    async def test_invalid_argument_error(self, mock_gemini_settings, mock_genai_module, mock_llm_service):
         """Test invalid argument error handling."""
         mock_genai, mock_model = mock_genai_module
 
@@ -200,7 +201,7 @@ class TestGeminiService:
         client = GeminiClient()
 
         with pytest.raises(GeminiModelError) as exc_info:
-            await client.generate_content("Test prompt")
+            await client.generate_content(["Test prompt"])
 
         assert "Invalid input" in str(exc_info.value)
 
@@ -224,7 +225,7 @@ class TestGeminiService:
             assert "timed out" in str(exc_info.value).lower()
 
     @pytest.mark.asyncio
-    async def test_retry_logic(self, mock_genai_module):
+    async def test_retry_logic(self, mock_gemini_settings, mock_genai_module, mock_llm_service):
         """Test retry logic with exponential backoff."""
         mock_genai, mock_model = mock_genai_module
 
@@ -239,8 +240,8 @@ class TestGeminiService:
 
         client = GeminiClient()
 
-        # Should succeed after retries
-        result = await client.generate_content("Test prompt", retry_attempts=3)
+        # Should succeed after retries - use list to trigger Gemini path
+        result = await client.generate_content(["Test prompt"], retry_attempts=3)
         assert "success" in result
 
         # Verify all three attempts were made
