@@ -21,6 +21,23 @@ class TestGeminiService:
         """Setup method to reset client before each test."""
         reset_gemini_client()
 
+    @pytest.fixture(autouse=True)
+    def auto_mock_gemini_environment(self, mock_gemini_settings, mock_llm_service):
+        """Automatically mock Gemini environment for all tests."""
+        # This fixture applies to all tests in the class
+        pass
+
+    @pytest.fixture
+    def mock_gemini_settings(self):
+        """Mock settings to use Gemini provider."""
+        with patch("app.services.gemini_service.settings") as mock_settings:
+            mock_settings.llm_provider = "gemini"
+            mock_settings.google_api_key = "test-api-key"
+            mock_settings.llm_model = "gemini-2.5-pro"
+            mock_settings.llm_temperature = 0.1
+            mock_settings.llm_max_tokens = 8192
+            yield mock_settings
+
     @pytest.fixture
     def mock_genai_module(self):
         """Mock the google.generativeai module."""
@@ -34,22 +51,35 @@ class TestGeminiService:
 
             yield mock_genai, mock_model
 
-    def test_client_initialization(self, mock_genai_module):
+    @pytest.fixture
+    def mock_llm_service(self):
+        """Mock the LLM service."""
+        with patch("app.services.gemini_service.get_llm_service") as mock_service:
+            mock_instance = MagicMock()
+            # Make the generate_content method async
+            mock_instance.generate_content = AsyncMock(return_value={"response": json.dumps({"project_title": "Test Project", "estimated_value": {"amount": 1000000, "currency": "EUR"}})})
+            mock_instance.health_check = AsyncMock(return_value=True)
+            mock_instance.get_provider_name.return_value = "gemini"
+            mock_service.return_value = mock_instance
+            yield mock_instance
+
+    def test_client_initialization(self, mock_gemini_settings, mock_genai_module, mock_llm_service):
         """Test Gemini client initialization."""
         mock_genai, mock_model = mock_genai_module
-
+        
         client = GeminiClient()
 
-        # Verify configuration was called
-        mock_genai.configure.assert_called_once()
+        # Verify configuration was called for Gemini
+        mock_genai.configure.assert_called_once_with(api_key="test-api-key")
 
         # Verify model was created
         mock_genai.GenerativeModel.assert_called_once()
 
         assert client._model is not None
+        assert client._llm_service is not None
 
     @pytest.mark.asyncio
-    async def test_successful_content_generation(self, mock_genai_module):
+    async def test_successful_content_generation(self, mock_gemini_settings, mock_genai_module, mock_llm_service):
         """Test successful content generation."""
         mock_genai, mock_model = mock_genai_module
 

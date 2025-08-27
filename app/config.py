@@ -76,6 +76,13 @@ class Settings(BaseSettings):
             raise ValueError(f"LLM provider must be one of: {valid_providers}")
         return v
 
+    def model_post_init(self, __context):
+        """Validate provider-specific API keys after model initialization."""
+        if self.llm_provider == "gemini" and not self.google_api_key:
+            raise ValueError("Google API key is required when using Gemini provider")
+        elif self.llm_provider == "openai" and not self.openai_api_key:
+            raise ValueError("OpenAI API key is required when using OpenAI provider")
+
     @field_validator("max_file_size")
     @classmethod
     def validate_max_file_size(cls, v):

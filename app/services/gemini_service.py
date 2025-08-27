@@ -191,11 +191,44 @@ class GeminiClient:
         raise last_exception or GeminiAPIException("All retry attempts failed")
 
     async def _generate_content_async(self, prompt: Union[str, List[Any]]) -> Any:
-        """Make async API call to Gemini."""
+        """Make async API call to configured LLM provider."""
         try:
-            # Run the synchronous API call in a thread pool
-            loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(None, self._model.generate_content, prompt)
+            # Check if we're using Gemini and have the legacy model for multimodal content
+            if (settings.llm_provider == "gemini" and 
+                self._model is not None and 
+                isinstance(prompt, list)):
+                # Use Gemini's native multimodal processing
+                loop = asyncio.get_event_loop()
+                return await loop.run_in_executor(None, self._model.generate_content, prompt)
+            else:
+                # Use the configurable LLM service for text-only content
+                if isinstance(prompt, list):
+                    # Convert multimodal prompt to text for non-Gemini providers
+                    text_content = ""
+                    for item in prompt:
+                        if isinstance(item, str):
+                            text_content += item + "\n"
+                        elif hasattr(item, 'text'):
+                            text_content += item.text + "\n"
+                    prompt = text_content.strip()
+                
+                # Use the LLM service which handles provider routing
+                response = await self._llm_service.generate_content(prompt, json_schema={"type": "object"})
+                
+                # Convert LLM service response to Gemini-like response format for compatibility
+                class CompatibleResponse:
+                    def __init__(self, text_content):
+                        if isinstance(text_content, dict) and "response" in text_content:
+                            self.text = text_content["response"]
+                            self.usage_metadata = text_content.get("usage", {})
+                        elif isinstance(text_content, dict):
+                            self.text = json.dumps(text_content)
+                            self.usage_metadata = {}
+                        else:
+                            self.text = str(text_content)
+                            self.usage_metadata = {}
+                
+                return CompatibleResponse(response)
         except Exception as e:
             logger.error(f"Error in _generate_content_async: {e}")
             raise
