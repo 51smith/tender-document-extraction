@@ -163,7 +163,7 @@ class JobManager:
 
         # Store RQ job ID for reference (outside the sync context)
         await self._redis_client.set(f"job:{job_id}:rq_id", rq_job.id)
-        
+
         # Set up fallback processing in case RQ workers fail (e.g., on macOS)
         asyncio.create_task(self._monitor_and_fallback_job(job_id, request, rq_job.id))
 
@@ -378,32 +378,35 @@ class JobManager:
         return cleaned_count
 
     async def _monitor_and_fallback_job(
-        self, 
-        job_id: str, 
+        self,
+        job_id: str,
         request: Union[DocumentExtractionRequest, BatchExtractionRequest],
-        rq_job_id: str
+        rq_job_id: str,
     ) -> None:
         """Monitor RQ job and fall back to direct processing if it fails."""
-        
+
         try:
             # Wait a bit to see if RQ processes the job
             await asyncio.sleep(5)
-            
+
             # Check if job is still pending
             job = await self.get_job(job_id)
             if job.status != ExtractionStatus.PENDING:
                 # Job was processed by RQ worker
                 return
-                
+
             # Check RQ job status
             with self._get_sync_connection():
                 from rq.job import Job
+
                 try:
                     rq_job = Job.fetch(rq_job_id)
                     rq_status = rq_job.get_status()
-                    
+
                     if rq_status == "failed":
-                        logger.warning(f"RQ job {rq_job_id} failed, falling back to direct processing")
+                        logger.warning(
+                            f"RQ job {rq_job_id} failed, falling back to direct processing"
+                        )
                         await self._process_job_directly(job_id, request)
                     elif rq_status in ["queued", "started"]:
                         # Job is being processed, wait longer
@@ -411,46 +414,48 @@ class JobManager:
                         # Check again
                         job = await self.get_job(job_id)
                         if job.status == ExtractionStatus.PENDING:
-                            logger.warning(f"RQ job {rq_job_id} stuck, falling back to direct processing")
+                            logger.warning(
+                                f"RQ job {rq_job_id} stuck, falling back to direct processing"
+                            )
                             await self._process_job_directly(job_id, request)
-                        
+
                 except Exception as e:
-                    logger.warning(f"Could not check RQ job status: {e}, falling back to direct processing")
+                    logger.warning(
+                        f"Could not check RQ job status: {e}, falling back to direct processing"
+                    )
                     await self._process_job_directly(job_id, request)
-                    
+
         except Exception as e:
             logger.error(f"Error in job monitoring for {job_id}: {e}")
 
     async def _process_job_directly(
-        self, 
-        job_id: str, 
-        request: Union[DocumentExtractionRequest, BatchExtractionRequest]
+        self, job_id: str, request: Union[DocumentExtractionRequest, BatchExtractionRequest]
     ) -> None:
         """Process job directly without RQ worker."""
-        
+
         try:
             logger.info(f"Starting direct processing for job: {job_id}")
-            
+
             # Import here to avoid circular imports
             from app.services.extraction_worker import ExtractionService
-            
+
             # Create service and process
             service = ExtractionService()
-            
+
             # Get file contents
             file_contents = await self.get_file_contents(job_id)
-            
+
             if isinstance(request, BatchExtractionRequest):
                 # Update status to processing
                 await self.update_job_status(job_id, ExtractionStatus.PROCESSING, 10.0)
-                
+
                 # Process batch
                 available_documents = {
                     filename: content
                     for filename, content in file_contents.items()
                     if content is not None
                 }
-                
+
                 if available_documents:
                     result = await service._process_multiple_documents(available_documents, request)
                     await self.update_job_status(
@@ -464,13 +469,11 @@ class JobManager:
                 await self.update_job_status(job_id, ExtractionStatus.PROCESSING, 50.0)
                 # TODO: Implement single document processing
                 raise NotImplementedError("Single document processing not implemented yet")
-                
+
         except Exception as e:
             logger.error(f"Direct processing failed for job {job_id}: {e}")
             await self.update_job_status(
-                job_id, 
-                ExtractionStatus.FAILED, 
-                error_message=f"Processing failed: {str(e)}"
+                job_id, ExtractionStatus.FAILED, error_message=f"Processing failed: {str(e)}"
             )
 
 

@@ -53,6 +53,11 @@ dev = [
     "pytest-mock==3.12.0",
     "pytest-httpx==0.26.0",
     "responses==0.24.1",
+    "hypothesis==6.92.1",
+    "pytest-benchmark==4.0.0",
+    "mutmut==2.4.3",
+    "testcontainers==3.7.1",
+    "locust==2.17.0",
     "black==23.11.0",
     "isort==5.12.0",
     "ruff==0.1.6",
@@ -213,7 +218,7 @@ skips = ["B101", "B601"]  # Skip assert_used and shell_injection_process (false 
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-testpaths = ["tests"]
+testpaths = ["tests/unit"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -225,11 +230,20 @@ addopts = [
     "--cov=app",
     "--cov-report=term-missing",
     "--cov-report=html:htmlcov",
-    "--cov-fail-under=80",
+    "--cov-fail-under=85",
+]
+norecursedirs = [
+    "scripts", 
+    "tests/integration",
+    "htmlcov",
+    ".git",
+    "__pycache__",
+    ".pytest_cache"
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
+    "integration: marks tests as integration tests (require running server)",
+    "script: marks tests as script tests (require server/services)",
     "gemini_api: marks tests that require real Gemini API access",
 ]
 filterwarnings = [
@@ -248,6 +262,10 @@ omit = [
 ]
 
 [tool.coverage.report]
+fail_under = 85
+show_missing = true
+skip_covered = false
+sort = "Cover"
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
@@ -260,3 +278,7 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
+
+[tool.coverage.html]
+directory = "htmlcov"
+title = "Phase 6 Test Coverage Report"

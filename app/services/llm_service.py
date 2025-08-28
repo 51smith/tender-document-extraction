@@ -13,7 +13,15 @@ import openai
 from google import generativeai as genai
 
 from app.config import settings
-from app.core.exceptions import LLMError, LLMQuotaExceededError, LLMRateLimitError
+from app.core.exceptions import (
+    LLMError,
+    LLMQuotaExceededError,
+    LLMRateLimitError,
+    OllamaConnectionError,
+    OpenAIConnectionError,
+    OpenAIRateLimitError,
+)
+from app.core.retry_config import get_retry_manager
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +33,19 @@ class BaseLLMService(ABC):
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.retry_manager = get_retry_manager()
 
     @abstractmethod
+    async def _generate_content_impl(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        json_schema: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Internal implementation of content generation (without retry logic)."""
+        pass
+
     async def generate_content(
         self,
         prompt: str,
@@ -34,8 +53,15 @@ class BaseLLMService(ABC):
         json_schema: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> Dict[str, Any]:
-        """Generate content using the LLM provider."""
-        pass
+        """Generate content using the LLM provider with retry logic."""
+        return await self.retry_manager.execute_with_retry(
+            self._generate_content_impl,
+            self.get_provider_name(),
+            prompt,
+            system_prompt,
+            json_schema,
+            **kwargs,
+        )
 
     @abstractmethod
     async def health_check(self) -> bool:
@@ -52,6 +78,14 @@ class BaseLLMService(ABC):
         """Get detailed provider information including endpoint details."""
         pass
 
+    def get_circuit_status(self) -> Dict[str, Any]:
+        """Get circuit breaker status for this provider."""
+        return self.retry_manager.get_circuit_status(self.get_provider_name())
+
+    def reset_circuit_breaker(self):
+        """Reset circuit breaker for this provider."""
+        self.retry_manager.reset_circuit_breaker(self.get_provider_name())
+
 
 class GeminiLLMService(BaseLLMService):
     """Google Gemini LLM service implementation."""
@@ -61,7 +95,7 @@ class GeminiLLMService(BaseLLMService):
         genai.configure(api_key=api_key)
         self.client = genai.GenerativeModel(model_name=model)
 
-    async def generate_content(
+    async def _generate_content_impl(
         self,
         prompt: str,
         system_prompt: Optional[str] = None,
@@ -140,7 +174,7 @@ class GeminiLLMService(BaseLLMService):
             "endpoint": "https://generativelanguage.googleapis.com",
             "endpoint_type": "cloud",
             "location": "Google Cloud",
-            "cost_model": "pay-per-token"
+            "cost_model": "pay-per-token",
         }
 
 
@@ -158,7 +192,7 @@ class OpenAILLMService(BaseLLMService):
         super().__init__(model, temperature, max_tokens)
         self.client = openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
 
-    async def generate_content(
+    async def _generate_content_impl(
         self,
         prompt: str,
         system_prompt: Optional[str] = None,
@@ -211,9 +245,9 @@ class OpenAILLMService(BaseLLMService):
             }
 
         except openai.RateLimitError as e:
-            raise LLMRateLimitError(f"OpenAI rate limit exceeded: {e}")
+            raise OpenAIRateLimitError()
         except openai.APIConnectionError as e:
-            raise LLMError(f"OpenAI connection error: {e}")
+            raise OpenAIConnectionError(str(e))
         except Exception as e:
             logger.error(f"OpenAI API error: {e}")
             if "quota" in str(e).lower():
@@ -234,16 +268,18 @@ class OpenAILLMService(BaseLLMService):
         return "openai"
 
     def get_provider_info(self) -> Dict[str, Any]:
-        base_url = self.client.base_url if hasattr(self.client, 'base_url') else "https://api.openai.com"
+        base_url = (
+            self.client.base_url if hasattr(self.client, "base_url") else "https://api.openai.com"
+        )
         is_local = "localhost" in str(base_url) or "127.0.0.1" in str(base_url)
-        
+
         return {
             "provider": "openai",
             "model": self.model,
             "endpoint": str(base_url),
             "endpoint_type": "local" if is_local else "cloud",
             "location": "Local server" if is_local else "OpenAI Cloud",
-            "cost_model": "free" if is_local else "pay-per-token"
+            "cost_model": "free" if is_local else "pay-per-token",
         }
 
 
@@ -262,7 +298,7 @@ class OllamaLLMService(BaseLLMService):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
-    async def generate_content(
+    async def _generate_content_impl(
         self,
         prompt: str,
         system_prompt: Optional[str] = None,
@@ -319,7 +355,7 @@ class OllamaLLMService(BaseLLMService):
         except asyncio.TimeoutError:
             raise LLMError(f"Ollama request timed out after {self.timeout} seconds")
         except aiohttp.ClientError as e:
-            raise LLMError(f"Ollama connection error: {e}")
+            raise OllamaConnectionError(self.base_url, str(e))
         except Exception as e:
             logger.error(f"Ollama API error: {e}")
             raise LLMError(f"Ollama generation failed: {e}")
@@ -339,7 +375,7 @@ class OllamaLLMService(BaseLLMService):
 
     def get_provider_info(self) -> Dict[str, Any]:
         is_local = "localhost" in self.base_url or "127.0.0.1" in self.base_url
-        
+
         return {
             "provider": "ollama",
             "model": self.model,
@@ -347,7 +383,7 @@ class OllamaLLMService(BaseLLMService):
             "endpoint_type": "local" if is_local else "remote",
             "location": "Local machine" if is_local else f"Remote server ({self.base_url})",
             "cost_model": "free",
-            "timeout": f"{self.timeout}s"
+            "timeout": f"{self.timeout}s",
         }
 
 

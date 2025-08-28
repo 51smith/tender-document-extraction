@@ -69,15 +69,11 @@ def test_server_health():
     print_status("Testing server health...")
     try:
         response = requests.get(f"{BASE_URL}/health", timeout=5)
-        if response.status_code == 200:
-            print_success("Server is healthy")
-            return True
-        else:
-            print_error(f"Server unhealthy: {response.status_code}")
-            return False
+        assert response.status_code == 200, f"Server unhealthy: {response.status_code}"
+        print_success("Server is healthy")
     except requests.RequestException as e:
         print_error(f"Server not reachable: {e}")
-        return False
+        assert False, f"Server not reachable: {e}"
 
 def test_redis_connection():
     """Test Redis connection."""
@@ -86,10 +82,9 @@ def test_redis_connection():
         client = redis_sync.from_url(settings.redis_url)
         client.ping()
         print_success("Redis connection successful")
-        return True
     except Exception as e:
         print_error(f"Redis connection failed: {e}")
-        return False
+        assert False, f"Redis connection failed: {e}"
 
 def submit_test_job():
     """Submit a test job and return job ID."""
@@ -193,21 +188,20 @@ def test_queue_statistics():
     
     try:
         response = requests.get(f"{BASE_URL}/api/v1/statistics")
+        assert response.status_code == 200, f"Statistics request failed: {response.status_code}"
         
-        if response.status_code == 200:
-            stats = response.json()
-            print_success("Queue statistics:")
-            print(f"  Total jobs: {stats.get('total_jobs', 'N/A')}")
-            print(f"  Queue stats: {stats.get('queue_stats', 'N/A')}")
-            print(f"  Status counts: {stats.get('status_counts', 'N/A')}")
-            return True
-        else:
-            print_error(f"Statistics request failed: {response.status_code}")
-            return False
-            
+        stats = response.json()
+        print_success("Queue statistics:")
+        print(f"  Total jobs: {stats.get('total_jobs', 'N/A')}")
+        print(f"  Queue stats: {stats.get('queue_stats', 'N/A')}")
+        print(f"  Status counts: {stats.get('status_counts', 'N/A')}")
+        
+        # Basic validation that we got expected structure
+        assert 'total_jobs' in stats, "Missing 'total_jobs' in statistics"
+        
     except requests.RequestException as e:
         print_error(f"Statistics error: {e}")
-        return False
+        assert False, f"Statistics error: {e}"
 
 def check_worker_running():
     """Check if RQ worker is running."""
@@ -240,18 +234,25 @@ def main():
     print("=" * 50)
     
     # Pre-flight checks
-    if not test_server_health():
+    try:
+        test_server_health()
+    except AssertionError:
         print_error("Server not available. Start with: python run_dev.py")
         sys.exit(1)
     
-    if not test_redis_connection():
+    try:
+        test_redis_connection()
+    except AssertionError:
         print_error("Redis not available. Start with: redis-server")
         sys.exit(1)
     
     worker_running = check_worker_running()
     
     # Test queue statistics
-    test_queue_statistics()
+    try:
+        test_queue_statistics()
+    except AssertionError as e:
+        print_warning(f"Statistics test failed: {e}")
     
     # Test job submission
     job_id = submit_test_job()
@@ -315,7 +316,10 @@ def main():
     
     # Final statistics
     print_status("\nFinal queue statistics:")
-    test_queue_statistics()
+    try:
+        test_queue_statistics()
+    except AssertionError as e:
+        print_warning(f"Final statistics test failed: {e}")
     
     print("\n🎉 Queue testing completed!")
     

@@ -12,6 +12,11 @@ help:
 	@echo "  test          - Run all tests"
 	@echo "  test-unit     - Run unit tests only"
 	@echo "  test-integration - Run integration tests"
+	@echo "  test-e2e      - Run end-to-end workflow tests"
+	@echo "  test-failover - Run provider failover scenario tests"
+	@echo "  test-batch    - Run large batch processing tests"
+	@echo "  test-performance - Run performance and load tests"
+	@echo "  test-containers - Run all containerized tests"
 	@echo "  test-api      - Run API smoke tests (requires running server)"
 	@echo "  test-all      - Run comprehensive test suite (units + quality + API)"
 	@echo "  lint          - Run linting checks"
@@ -27,6 +32,9 @@ help:
 	@echo "  build         - Build the application"
 	@echo "  docker-build  - Build Docker image"
 	@echo "  docker-run    - Run application in Docker"
+	@echo "  docker-test   - Run containerized test environment"
+	@echo "  docker-test-up - Start test containers"
+	@echo "  docker-test-down - Stop test containers"
 	@echo "  install-redis - Install Redis via Homebrew"
 	@echo "  start-redis   - Start Redis server"
 	@echo "  stop-redis    - Stop Redis server"
@@ -72,6 +80,27 @@ test-unit:
 
 test-integration:
 	pytest tests/integration/ -v -m integration
+
+# Phase 5: Containerized Testing Targets
+test-e2e:
+	@echo "🔄 Running end-to-end workflow tests..."
+	pytest tests/integration/test_e2e_workflows.py -v -m e2e
+
+test-failover:
+	@echo "🔀 Running provider failover scenario tests..."
+	pytest tests/integration/test_provider_failover.py -v -m failover
+
+test-batch:
+	@echo "📦 Running large batch processing tests..."
+	pytest tests/integration/test_large_batch_processing.py -v -m slow
+
+test-performance:
+	@echo "⚡ Running performance and load tests..."
+	cd tests/performance && python performance_test_runner.py
+
+test-containers:
+	@echo "🐳 Running all containerized integration tests..."
+	pytest tests/integration/ -v -m "integration or e2e or failover"
 
 test-coverage:
 	pytest --cov=app --cov-report=html --cov-report=term-missing
@@ -188,6 +217,24 @@ docker-run: docker-build
 	@echo "Running Docker container..."
 	docker run -p 8000:8000 --env-file .env tender-extract:latest
 
+# Phase 5: Docker Test Environment
+docker-test-up:
+	@echo "🐳 Starting containerized test environment..."
+	docker-compose -f docker-compose.test.yml up -d
+	@echo "Waiting for services to be ready..."
+	@sleep 30
+	@echo "✅ Test environment ready!"
+
+docker-test-down:
+	@echo "🛑 Stopping containerized test environment..."
+	docker-compose -f docker-compose.test.yml down
+	@echo "✅ Test environment stopped!"
+
+docker-test: docker-test-up
+	@echo "🧪 Running integration tests in containerized environment..."
+	pytest tests/integration/ -v -x --tb=short
+	@$(MAKE) docker-test-down
+
 # Database and Redis (for development)
 install-redis:
 	@echo "Installing Redis via Homebrew..."
@@ -241,9 +288,14 @@ detailed-health-check:
 
 # Performance testing
 load-test:
-	@echo "Running load tests..."
-	# Add load testing commands here (e.g., locust, wrk, etc.)
-	@echo "⚠️  Load testing not yet implemented"
+	@echo "🔥 Running Locust load tests..."
+	@echo "Make sure the test server is running at http://localhost:8001"
+	cd tests/performance && locust -f locustfile.py -H http://localhost:8001 --headless -u 10 -r 2 -t 60s --html reports/load_test_report.html
+
+load-test-ui:
+	@echo "🎯 Starting Locust web interface..."
+	@echo "Open http://localhost:8089 to control the load test"
+	cd tests/performance && locust -f locustfile.py -H http://localhost:8001
 
 # Database migrations (if needed in future)
 migrate:

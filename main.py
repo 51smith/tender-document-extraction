@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routers import extraction, health, usage
+from app.routers import extraction, health, usage, web
 from app.services.job_manager import initialize_job_manager, cleanup_job_manager
 from app.services.usage_tracker import initialize_usage_tracker, cleanup_usage_tracker
 from app.core.exceptions import TenderExtractionException, map_to_http_exception
@@ -138,6 +138,7 @@ async def global_exception_handler(request, exc: Exception):
 app.include_router(health.router)
 app.include_router(extraction.router)
 app.include_router(usage.router)
+app.include_router(web.router)
 
 
 # Root endpoint

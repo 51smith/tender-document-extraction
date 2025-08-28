@@ -5,11 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="df226ed5-19f8-497e-aa9d-1495497797e2" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.env" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.claude/settings.local.json" beforeDir="false" afterPath="$PROJECT_DIR$/.claude/settings.local.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/prompts/templates/base.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/prompts/templates/base.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/prompts/templates/tender_extraction.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/prompts/templates/tender_extraction.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/core/exceptions.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/core/exceptions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/routers/health.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/routers/health.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/services/extraction_worker.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/services/extraction_worker.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/services/gemini_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/services/gemini_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/services/job_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/services/job_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/services/llm_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/app/services/llm_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/test_llm_backends.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/test_llm_backends.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/unit/test_gemini_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/unit/test_gemini_service.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -27,21 +30,21 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "51smith"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;51smith&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/51smith/tender-document-extraction.git",
-    "accountId": "71b73b25-6828-42c7-b7ed-721c189faef8"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/51smith/tender-document-extraction.git&quot;,
+    &quot;accountId&quot;: &quot;0fe75335-85de-4b2f-b799-92a4df1eeb8b&quot;
   }
-}]]></component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 5
-}]]></component>
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
   <component name="ProjectId" id="31kCEyW5XIjt9lyP4CYF4YZ1TP4" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -52,11 +55,13 @@
     "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "Merging feature/test-coverage-85-percent",
     "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "/Users/shanesmith/Documents/development/tender_batch_extract",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/Users/shanesmith/Documents/development/tender_batch_extract/tests/testdata/npo",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -68,6 +73,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/tests/testdata/npo" />
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
@@ -91,8 +97,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-e03c56caf84a-JavaScript-PY-252.23892.515" />
-        <option value="bundled-python-sdk-7e47963ff851-f0eec537fc84-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.23892.515" />
+        <option value="bundled-jdk-9823dce3aa75-bf35d07a577b-intellij.indexing.shared.core-IU-252.23892.409" />
+        <option value="bundled-js-predefined-d6986cc7102b-e03c56caf84a-JavaScript-IU-252.23892.409" />
       </set>
     </attachedChunks>
   </component>
@@ -104,6 +110,10 @@
       <option name="presentableId" value="Default" />
       <updated>1756058575360</updated>
       <workItem from="1756058576411" duration="6517000" />
+      <workItem from="1756075167958" duration="5643000" />
+      <workItem from="1756185573572" duration="2022000" />
+      <workItem from="1756287050095" duration="1743000" />
+      <workItem from="1756312645721" duration="2373000" />
     </task>
     <servers />
   </component>

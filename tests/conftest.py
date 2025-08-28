@@ -3,7 +3,7 @@ import os
 import tempfile
 from pathlib import Path
 from typing import Any, AsyncGenerator, Dict
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -18,6 +18,26 @@ from app.utils.prompt_builder import reset_prompt_builder
 
 # Import app components
 from main import app
+
+# Import test fixtures and utilities
+from tests.fixtures.mocks import (
+    MockDocumentProcessor,
+    MockExtractionWorker,
+    MockJobManager,
+    MockLLMService,
+    MockRedisClient,
+    MockUsageTracker,
+    create_mock_error_scenarios,
+    create_mock_extraction_result,
+    create_performance_test_data,
+)
+from tests.fixtures.test_utils import (
+    TestAPIClient,
+    create_temp_docx_file,
+    create_temp_pdf,
+    create_temp_text_file,
+    setup_test_environment,
+)
 
 
 # Pytest configuration
@@ -316,3 +336,108 @@ def test_settings():
     for key, value in original_settings.items():
         if hasattr(settings, key):
             setattr(settings, key, value)
+
+
+# Enhanced mock fixtures
+@pytest.fixture
+def mock_llm_service():
+    """Mock LLM service for testing."""
+    return MockLLMService()
+
+
+@pytest.fixture
+def mock_redis_client():
+    """Mock Redis client for testing."""
+    return MockRedisClient()
+
+
+@pytest.fixture
+def mock_extraction_worker():
+    """Mock extraction worker for testing."""
+    return MockExtractionWorker()
+
+
+@pytest.fixture
+def mock_job_manager():
+    """Mock job manager for testing."""
+    return MockJobManager()
+
+
+@pytest.fixture
+def mock_document_processor():
+    """Mock document processor for testing."""
+    return MockDocumentProcessor()
+
+
+@pytest.fixture
+def mock_usage_tracker():
+    """Mock usage tracker for testing."""
+    return MockUsageTracker()
+
+
+@pytest.fixture
+def mock_error_scenarios():
+    """Mock error scenarios for testing."""
+    return create_mock_error_scenarios()
+
+
+@pytest.fixture
+def performance_test_data():
+    """Performance test data."""
+    return create_performance_test_data()
+
+
+@pytest.fixture
+async def api_client():
+    """Enhanced API test client."""
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        yield TestAPIClient(client)
+
+
+@pytest.fixture
+def temp_pdf_file():
+    """Create temporary PDF file."""
+    return create_temp_pdf("Test PDF content for extraction")
+
+
+@pytest.fixture
+def temp_text_file():
+    """Create temporary text file."""
+    return create_temp_text_file("Test text content for extraction")
+
+
+@pytest.fixture
+def temp_docx_file():
+    """Create temporary DOCX file."""
+    return create_temp_docx_file()
+
+
+@pytest.fixture
+def comprehensive_test_environment():
+    """Setup comprehensive test environment with all mocks."""
+    return setup_test_environment()
+
+
+@pytest.fixture
+def sample_job_data():
+    """Sample job data for testing."""
+    return {
+        "job_id": "test-job-123",
+        "job_type": "batch_extraction",
+        "status": "queued",
+        "files_count": 3,
+        "config": {"config_name": "default", "enable_multimodal": True},
+        "created_at": 1234567890.0,
+        "updated_at": 1234567890.0,
+        "progress": 0.0,
+    }
+
+
+@pytest.fixture
+def batch_extraction_files():
+    """Create multiple files for batch testing."""
+    return [
+        ("doc1.pdf", create_temp_pdf("Document 1 content"), "application/pdf"),
+        ("doc2.txt", create_temp_text_file("Document 2 content"), "text/plain"),
+        ("doc3.pdf", create_temp_pdf("Document 3 content"), "application/pdf"),
+    ]

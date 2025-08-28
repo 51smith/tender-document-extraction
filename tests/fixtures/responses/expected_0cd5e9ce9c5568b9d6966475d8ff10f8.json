@@ -1,0 +1,52 @@
+{
+  "document_hash": "0cd5e9ce9c5568b9d6966475d8ff10f8",
+  "extraction_result": {
+    "project_title": "Diagnostic Equipment B64",
+    "estimated_value": 99604,
+    "currency": "GBP",
+    "submission_deadline": "2025-11-21T18:35:06Z",
+    "contracting_authority": {
+      "name": "Medical Procurement Office",
+      "contact": "medical@procurement.health"
+    },
+    "evaluation_criteria": [
+      {
+        "name": "Technical Capability",
+        "weight": 0.66
+      },
+      {
+        "name": "Sustainability",
+        "weight": 0.13
+      },
+      {
+        "name": "Project Timeline",
+        "weight": 0.21
+      }
+    ],
+    "confidence_scores": {
+      "project_title": 0.97,
+      "estimated_value": 0.9,
+      "submission_deadline": 0.98,
+      "contracting_authority": 0.89,
+      "evaluation_criteria": 0.88
+    },
+    "extraction_metadata": {
+      "processing_time": 2.1220204206411175,
+      "confidence_overall": 0.924,
+      "flags": []
+    }
+  },
+  "confidence_scores": {
+    "project_title": 0.97,
+    "estimated_value": 0.9,
+    "submission_deadline": 0.98,
+    "contracting_authority": 0.89,
+    "evaluation_criteria": 0.88
+  },
+  "metadata": {
+    "created_at": "2025-08-27T18:35:06.532870",
+    "document_length": 955,
+    "complexity": "medium"
+  },
+  "created_at": "2025-08-27T18:35:06.532872"
+}
