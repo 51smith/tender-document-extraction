@@ -35,7 +35,9 @@ AI-powered document extraction service using Google Gemini 2.5 Pro for intellige
 - **Queue Management**: Redis with RQ
 - **Document Processing**: PyPDF2, Pillow, python-docx
 - **Monitoring**: Structured logging, usage analytics
-- **Testing**: Pytest with async support, comprehensive test coverage
+- **Testing**: Pytest with async support, TestContainers, comprehensive test coverage
+- **Integration Testing**: Docker-based test environment, mock LLM services
+- **Performance Testing**: Locust load testing, automated performance validation
 - **Code Quality**: Black, isort, ruff, mypy, bandit, pre-commit hooks
 
 ## 📦 Installation
@@ -194,32 +196,55 @@ quality:
 
 ## 🧪 Testing
 
-### Run All Tests
+### Unit Tests
 ```bash
-make test
-```
-
-### Unit Tests Only
-```bash
-make test-unit
+make test-unit          # Run unit tests only
+make test-coverage      # Run with coverage report
 ```
 
 ### Integration Tests
 ```bash
-make test-integration
+make test-integration   # Basic integration tests
+make test-e2e          # End-to-end workflow tests
+make test-failover     # Provider failover scenarios
+make test-batch        # Large batch processing tests
+make test-containers   # All containerized tests
 ```
 
-### Coverage Report
+### Performance Testing
 ```bash
-make test-coverage
+make test-performance   # Automated performance test suite
+make load-test         # Locust load test (headless)
+make load-test-ui      # Locust with web interface
 ```
 
-### Prompt Validation
-The service includes a golden dataset for prompt validation:
-
+### Docker Test Environment
 ```bash
-pytest tests/unit/test_prompt_validation.py -v
+make docker-test-up    # Start test containers
+make docker-test       # Run integration tests in containers
+make docker-test-down  # Stop test containers
 ```
+
+### Comprehensive Testing
+```bash
+make test              # Run all unit tests
+make ci-checks         # Complete CI/CD validation
+```
+
+### Test Infrastructure
+
+The service includes comprehensive testing infrastructure:
+
+#### Phase 4: Error Handling & Retry Logic
+- **Retry Configuration**: Unified retry logic with exponential backoff
+- **Circuit Breaker**: Provider failover patterns
+- **Error Recovery**: Comprehensive error scenario testing
+
+#### Phase 5: Containerized Test Environment
+- **TestContainers**: Isolated Redis and service containers
+- **Mock LLM Services**: Full API simulation for Gemini, OpenAI, Ollama
+- **Automated Test Data**: Realistic document generation system
+- **Performance Validation**: Load testing with configurable scenarios
 
 ## 📊 Monitoring
 
@@ -261,10 +286,22 @@ make security-check # Bandit
 
 ### Optimization Features
 
+- **Multi-Provider Support**: Gemini, OpenAI, Ollama with intelligent failover
 - **Rate Limiting**: Token bucket algorithm with burst capacity
+- **Circuit Breaker**: Automatic provider failover on failures
 - **Caching**: Document hash-based result caching
-- **Batch Processing**: Concurrent document analysis
-- **Cost Monitoring**: Real-time usage tracking
+- **Batch Processing**: Concurrent document analysis with progress tracking
+- **Cost Monitoring**: Real-time usage tracking across providers
+
+### Performance Testing
+
+The service includes comprehensive performance validation:
+
+- **Load Testing**: Locust-based load testing with realistic user scenarios
+- **Stress Testing**: High-volume request handling with failure simulation
+- **Consistency Testing**: Cross-provider result validation
+- **Batch Performance**: Large document set processing optimization
+- **Failover Testing**: Provider switching under various failure conditions
 
 ### Performance Metrics
 
@@ -272,6 +309,8 @@ make security-check # Bandit
 - **Throughput**: 1000 documents per hour peak capacity  
 - **Accuracy**: >95% for critical fields
 - **Cost Efficiency**: <$0.50 average per document
+- **Failover Time**: <2 seconds provider switching
+- **Test Coverage**: 57%+ with comprehensive integration testing
 
 ## 🐛 Troubleshooting
 
@@ -300,12 +339,55 @@ make security-check # Bandit
 DEBUG=true python run_dev.py
 ```
 
+### Test Environment 
+
+1. **Docker Test Environment**
+   ```bash
+   make docker-test-down  # Clean up containers
+   make docker-test-up    # Restart test environment
+   ```
+
+2. **TestContainers Issues**
+   - Ensure Docker is running and accessible
+   - Check available ports (6380, 8001-8003, 11434)
+   - Verify test dependencies: `pip install -r requirements-dev.txt`
+
+3. **Performance Test Setup**
+   ```bash
+   cd tests/performance
+   python performance_test_runner.py  # Automated test suite
+   ```
+
+### Dev Environment 
+1. **Start Ollama locally:**
+  ```bash 
+  ollama serve  
+  ```
+
+  2. **Start development environment:**
+  ```bash 
+  make docker-dev
+  ```
+  3. **View logs:**
+  ```bash 
+    make docker-dev-logs
+  ```
+  4. **Stop when finished:**
+  ```bash 
+  make docker-dev-down
+  ```
+    5. ** restart when needed:**
+  ```bash
+   # Restart services
+  make docker-dev-restart
+   ```
 ### Logs
 
 Application logs are available in:
 - Development: Console output
 - Production: `./logs/` directory
 - Docker: Container logs via `docker logs`
+- Test Environment: `docker-compose -f docker-compose.test.yml logs`
 
 ## 🤝 Contributing
 

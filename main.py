@@ -6,14 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routers import extraction, health, usage
+from app.routers import extraction, health, usage, web
 from app.services.job_manager import initialize_job_manager, cleanup_job_manager
 from app.services.usage_tracker import initialize_usage_tracker, cleanup_usage_tracker
 from app.core.exceptions import TenderExtractionException, map_to_http_exception
 
 # Configure logging
 logging.basicConfig(
-    level=getattr(logging, settings.monitoring.log_level),
+    level=getattr(logging, settings.log_level),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
@@ -89,10 +89,10 @@ app = FastAPI(
 )
 
 # Add CORS middleware
-if settings.security.cors_enabled:
+if settings.cors_enabled:
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.security.allowed_origins,
+        allow_origins=settings.allowed_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE"],
         allow_headers=["*"],
@@ -138,6 +138,7 @@ async def global_exception_handler(request, exc: Exception):
 app.include_router(health.router)
 app.include_router(extraction.router)
 app.include_router(usage.router)
+app.include_router(web.router)
 
 
 # Root endpoint

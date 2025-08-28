@@ -1,0 +1,52 @@
+{
+  "document_hash": "4b8f7218a5367e7b3baba0f2a57f12db",
+  "extraction_result": {
+    "project_title": "Software Development B6",
+    "estimated_value": 208255,
+    "currency": "GBP",
+    "submission_deadline": "2025-11-07T18:35:06Z",
+    "contracting_authority": {
+      "name": "Technology Services",
+      "contact": "tech.contracts@services.org"
+    },
+    "evaluation_criteria": [
+      {
+        "name": "Sustainability",
+        "weight": 0.19
+      },
+      {
+        "name": "Project Timeline",
+        "weight": 0.24
+      },
+      {
+        "name": "Technical Capability",
+        "weight": 0.57
+      }
+    ],
+    "confidence_scores": {
+      "project_title": 0.8,
+      "estimated_value": 0.83,
+      "submission_deadline": 0.86,
+      "contracting_authority": 0.8,
+      "evaluation_criteria": 0.78
+    },
+    "extraction_metadata": {
+      "processing_time": 3.1681200789762824,
+      "confidence_overall": 0.8140000000000001,
+      "flags": []
+    }
+  },
+  "confidence_scores": {
+    "project_title": 0.8,
+    "estimated_value": 0.83,
+    "submission_deadline": 0.86,
+    "contracting_authority": 0.8,
+    "evaluation_criteria": 0.78
+  },
+  "metadata": {
+    "created_at": "2025-08-27T18:35:06.533306",
+    "document_length": 953,
+    "complexity": "medium"
+  },
+  "created_at": "2025-08-27T18:35:06.533308"
+}

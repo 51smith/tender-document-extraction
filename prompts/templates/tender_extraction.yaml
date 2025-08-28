@@ -3,7 +3,7 @@
 inherits: base
 
 task_description: |
-  Extract comprehensive tender information from the provided procurement document. Focus on critical business information needed for bid preparation and evaluation.
+  Extract comprehensive tender information from the provided procurement documents. Focus on critical business information needed for bid preparation and evaluation.
 
 schema_definition: |
   {

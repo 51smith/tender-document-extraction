@@ -362,6 +362,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - I want to build this project in stages. For now only follow the prompt. I'll give you the next step after reviewing this one.
 - 
 
+# 🚨 MANDATORY TESTING REQUIREMENTS
+
+## ⚠️ CRITICAL: Testing is Non-Negotiable
+
+**BEFORE making ANY changes to code, Claude MUST:**
+
+1. **Always run unit tests first:**
+   ```bash
+   pytest
+   ```
+
+2. **After ANY code changes, Claude MUST:**
+   - Run unit tests again: `pytest`
+   - Run code quality checks: `black app/ tests/ && isort app/ tests/ && ruff check app/ tests/ && mypy app/`
+   - Start the development server and test ALL affected API endpoints
+
+3. **For API changes, Claude MUST perform smoke tests:**
+   ```bash
+   # Test all main endpoints
+   curl -X GET "http://localhost:8000/health"
+   curl -X POST "http://localhost:8000/api/v1/extract/batch" -H "Content-Type: multipart/form-data" -F "files=@test_file.txt"
+   curl -X GET "http://localhost:8000/api/v1/jobs"
+   curl -X GET "http://localhost:8000/api/v1/statistics"
+   ```
+
+4. **Test coverage requirements:**
+   - All unit tests must pass (0 failures)
+   - All API endpoints must respond correctly
+   - Any removed endpoints must return 404
+   - Any new functionality must have corresponding tests
+
+**FAILURE TO TEST = INCOMPLETE TASK**
+
+If Claude skips testing, the user should remind Claude that testing is mandatory per the project guidelines.
+
+---
+
 # ✅ Development Guidelines & Best Practices
 
 ## 🧪 Testing
@@ -457,7 +494,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ---
 
 ## 🔀 Git Workflow Best Practices
-- [ ] Use **feature branches** for new work (e.g., `feature/add-auth`).  
+- [ ] **You must Always Use feature branches** for new work! (e.g., `feature/add-auth`).  
 - [ ] Keep **main branch stable** — always production-ready.  
 - [ ] Use **pull requests (PRs)** for merging into main.  
 - [ ] Require **code reviews** before merging.  
@@ -470,7 +507,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Core Prompt Engineering Principles
 
-  "When working with Gemini API prompts, prioritize maintainability and systematic organization:"
+  "When working with API prompts, prioritize maintainability and systematic organization:"
 
   1. Centralized Prompt Management
     - Store all prompts in dedicated configuration files (YAML/JSON)

@@ -47,6 +47,8 @@ COPY app/ app/
 COPY prompts/ prompts/
 COPY main.py .
 COPY run_dev.py .
+COPY run_worker.py .
+COPY start_worker.py .
 
 # Create logs directory
 RUN mkdir -p logs && chown -R appuser:appuser /app
@@ -76,6 +78,7 @@ FROM production as development
 USER root
 
 # Install development dependencies
+COPY requirements.txt .
 COPY requirements-dev.txt .
 RUN pip install --no-cache-dir -r requirements-dev.txt
 
@@ -87,9 +90,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy development files
 COPY tests/ tests/
-COPY pytest.ini .
 COPY pyproject.toml .
-COPY .pre-commit-config.yaml .
 
 # Switch back to appuser
 USER appuser

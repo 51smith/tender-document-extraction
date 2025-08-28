@@ -1,22 +1,43 @@
-import pytest
 import asyncio
-import tempfile
 import os
+import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
-from typing import Dict, Any, AsyncGenerator
+from typing import Any, AsyncGenerator, Dict
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
-# Import app components
-from main import app
 from app.config import settings
 from app.services.gemini_service import reset_gemini_client
 from app.services.job_manager import get_job_manager
 from app.services.usage_tracker import get_usage_tracker
-from app.utils.prompt_builder import reset_prompt_builder
 from app.utils.document_processor import reset_document_processor
+from app.utils.prompt_builder import reset_prompt_builder
+
+# Import app components
+from main import app
+
+# Import test fixtures and utilities
+from tests.fixtures.mocks import (
+    MockDocumentProcessor,
+    MockExtractionWorker,
+    MockJobManager,
+    MockLLMService,
+    MockRedisClient,
+    MockUsageTracker,
+    create_mock_error_scenarios,
+    create_mock_extraction_result,
+    create_performance_test_data,
+)
+from tests.fixtures.test_utils import (
+    TestAPIClient,
+    create_temp_docx_file,
+    create_temp_pdf,
+    create_temp_text_file,
+    setup_test_environment,
+)
 
 
 # Pytest configuration
@@ -25,12 +46,8 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "integration: marks tests as integration tests (may require API keys)"
     )
-    config.addinivalue_line(
-        "markers", "gemini_api: marks tests that call the real Gemini API"
-    )
-    config.addinivalue_line(
-        "markers", "slow: marks tests as slow running"
-    )
+    config.addinivalue_line("markers", "gemini_api: marks tests that call the real Gemini API")
+    config.addinivalue_line("markers", "slow: marks tests as slow running")
 
 
 @pytest.fixture(scope="session")
@@ -81,48 +98,38 @@ def sample_text_content():
 @pytest.fixture(scope="function")
 def sample_extraction_result():
     """Sample extraction result for testing."""
+    from datetime import datetime
+    from decimal import Decimal
+
     from app.models.extraction import (
-        TenderExtractionResult,
-        TenderExtractedData,
         ConfidenceScores,
+        ContractingAuthority,
+        ContractType,
+        EstimatedValue,
+        EvaluationCriterion,
         ExtractionNotes,
         ProcessingMetadata,
-        EstimatedValue,
-        ContractingAuthority,
-        EvaluationCriterion,
-        ContractType
+        TenderExtractedData,
+        TenderExtractionResult,
     )
-    from decimal import Decimal
-    from datetime import datetime
 
     return TenderExtractionResult(
         extracted_data=TenderExtractedData(
             project_title="Highway Construction Project A1",
-            contracting_authority=ContractingAuthority(
-                name="Department of Transportation"
-            ),
-            estimated_value=EstimatedValue(
-                amount=Decimal("5000000"),
-                currency="EUR"
-            ),
+            contracting_authority=ContractingAuthority(name="Department of Transportation"),
+            estimated_value=EstimatedValue(amount=Decimal("5000000"), currency="EUR"),
             contract_type=ContractType.WORKS,
             evaluation_criteria=[
                 EvaluationCriterion(criterion="Price", weight_percentage=Decimal("40")),
                 EvaluationCriterion(criterion="Technical Quality", weight_percentage=Decimal("35")),
                 EvaluationCriterion(criterion="Experience", weight_percentage=Decimal("25")),
-            ]
+            ],
         ),
         confidence_scores=ConfidenceScores(
-            project_title=0.95,
-            contracting_authority=0.9,
-            estimated_value=0.85,
-            overall=0.9
+            project_title=0.95, contracting_authority=0.9, estimated_value=0.85, overall=0.9
         ),
         extraction_notes=ExtractionNotes(),
-        processing_metadata=ProcessingMetadata(
-            processing_time=2.5,
-            model="gemini-2.5-pro"
-        )
+        processing_metadata=ProcessingMetadata(processing_time=2.5, model="gemini-2.5-pro"),
     )
 
 
@@ -132,39 +139,34 @@ def mock_gemini_response():
     return {
         "extracted_data": {
             "project_title": "Highway Construction Project A1",
-            "contracting_authority": {
-                "name": "Department of Transportation"
-            },
-            "estimated_value": {
-                "amount": 5000000,
-                "currency": "EUR"
-            },
-            "contract_type": "works"
+            "contracting_authority": {"name": "Department of Transportation"},
+            "estimated_value": {"amount": 5000000, "currency": "EUR"},
+            "contract_type": "works",
         },
         "confidence_scores": {
             "project_title": 0.95,
             "contracting_authority": 0.9,
             "estimated_value": 0.85,
-            "overall": 0.9
+            "overall": 0.9,
         },
         "extraction_notes": {
             "ambiguities": [],
             "assumptions": [],
             "missing_information": [],
-            "recommendations": []
+            "recommendations": [],
         },
         "processing_metadata": {
             "document_type": "application/pdf",
             "language": "en",
-            "extraction_complexity": "moderate"
+            "extraction_complexity": "moderate",
         },
         "_metadata": {
             "model": "gemini-2.5-pro",
             "processing_time": 2.5,
             "estimated_tokens": 1200,
             "actual_tokens": 1150,
-            "timestamp": 1234567890.0
-        }
+            "timestamp": 1234567890.0,
+        },
     }
 
 
@@ -173,15 +175,9 @@ def mock_gemini_client(mock_gemini_response):
     """Mock Gemini client for testing."""
     mock_client = AsyncMock()
     mock_client.generate_content.return_value = mock_gemini_response
-    mock_client.test_connection.return_value = {
-        "status": "success",
-        "model": "gemini-2.5-pro"
-    }
+    mock_client.test_connection.return_value = {"status": "success", "model": "gemini-2.5-pro"}
     mock_client.get_usage_stats.return_value = {
-        "rate_limits": {
-            "available_requests": 100,
-            "available_tokens": 50000
-        }
+        "rate_limits": {"available_requests": 100, "available_tokens": 50000}
     }
     return mock_client
 
@@ -213,7 +209,7 @@ def reset_singletons():
 async def mock_redis():
     """Mock Redis client for testing."""
     from unittest.mock import AsyncMock
-    
+
     mock_redis = AsyncMock()
     mock_redis.ping.return_value = True
     mock_redis.set.return_value = True
@@ -221,7 +217,7 @@ async def mock_redis():
     mock_redis.hgetall.return_value = {}
     mock_redis.zadd.return_value = 1
     mock_redis.zrange.return_value = []
-    
+
     return mock_redis
 
 
@@ -241,9 +237,9 @@ def prompt_validation_dataset():
                 "project_title": "Software Development Services",
                 "contracting_authority.name": "City Council IT Department",
                 "estimated_value.amount": 250000,
-                "estimated_value.currency": "EUR"
+                "estimated_value.currency": "EUR",
             },
-            "complexity": "simple"
+            "complexity": "simple",
         },
         {
             "document_text": """
@@ -279,11 +275,11 @@ def prompt_validation_dataset():
                 "evaluation_criteria": [
                     {"criterion": "Technical approach", "weight_percentage": 50},
                     {"criterion": "Price competitiveness", "weight_percentage": 30},
-                    {"criterion": "Past experience", "weight_percentage": 20}
-                ]
+                    {"criterion": "Past experience", "weight_percentage": 20},
+                ],
             },
-            "complexity": "moderate"
-        }
+            "complexity": "moderate",
+        },
     ]
 
 
@@ -294,7 +290,7 @@ def performance_test_data():
         "small_document": "A" * 1000,  # 1KB
         "medium_document": "B" * 10000,  # 10KB
         "large_document": "C" * 100000,  # 100KB
-        "batch_documents": ["Doc" + str(i) * 1000 for i in range(10)]
+        "batch_documents": ["Doc" + str(i) * 1000 for i in range(10)],
     }
 
 
@@ -310,11 +306,11 @@ def pytest_collection_modifyitems(config, items):
         # Add integration marker to tests with 'integration' in name
         if "integration" in item.nodeid:
             item.add_marker(pytest.mark.integration)
-        
+
         # Add slow marker to tests with 'slow' in name or that test performance
         if "slow" in item.nodeid or "performance" in item.nodeid:
             item.add_marker(pytest.mark.slow)
-        
+
         # Add gemini_api marker to tests that use real API
         if "gemini_api" in item.nodeid or item.get_closest_marker("gemini_api"):
             item.add_marker(pytest.mark.gemini_api)
@@ -329,14 +325,119 @@ def test_settings():
         "debug": settings.debug,
         "redis": settings.redis,
     }
-    
+
     # Override for testing
     settings.environment = "test"
     settings.debug = True
-    
+
     yield settings
-    
+
     # Restore original settings
     for key, value in original_settings.items():
         if hasattr(settings, key):
             setattr(settings, key, value)
+
+
+# Enhanced mock fixtures
+@pytest.fixture
+def mock_llm_service():
+    """Mock LLM service for testing."""
+    return MockLLMService()
+
+
+@pytest.fixture
+def mock_redis_client():
+    """Mock Redis client for testing."""
+    return MockRedisClient()
+
+
+@pytest.fixture
+def mock_extraction_worker():
+    """Mock extraction worker for testing."""
+    return MockExtractionWorker()
+
+
+@pytest.fixture
+def mock_job_manager():
+    """Mock job manager for testing."""
+    return MockJobManager()
+
+
+@pytest.fixture
+def mock_document_processor():
+    """Mock document processor for testing."""
+    return MockDocumentProcessor()
+
+
+@pytest.fixture
+def mock_usage_tracker():
+    """Mock usage tracker for testing."""
+    return MockUsageTracker()
+
+
+@pytest.fixture
+def mock_error_scenarios():
+    """Mock error scenarios for testing."""
+    return create_mock_error_scenarios()
+
+
+@pytest.fixture
+def performance_test_data():
+    """Performance test data."""
+    return create_performance_test_data()
+
+
+@pytest.fixture
+async def api_client():
+    """Enhanced API test client."""
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        yield TestAPIClient(client)
+
+
+@pytest.fixture
+def temp_pdf_file():
+    """Create temporary PDF file."""
+    return create_temp_pdf("Test PDF content for extraction")
+
+
+@pytest.fixture
+def temp_text_file():
+    """Create temporary text file."""
+    return create_temp_text_file("Test text content for extraction")
+
+
+@pytest.fixture
+def temp_docx_file():
+    """Create temporary DOCX file."""
+    return create_temp_docx_file()
+
+
+@pytest.fixture
+def comprehensive_test_environment():
+    """Setup comprehensive test environment with all mocks."""
+    return setup_test_environment()
+
+
+@pytest.fixture
+def sample_job_data():
+    """Sample job data for testing."""
+    return {
+        "job_id": "test-job-123",
+        "job_type": "batch_extraction",
+        "status": "queued",
+        "files_count": 3,
+        "config": {"config_name": "default", "enable_multimodal": True},
+        "created_at": 1234567890.0,
+        "updated_at": 1234567890.0,
+        "progress": 0.0,
+    }
+
+
+@pytest.fixture
+def batch_extraction_files():
+    """Create multiple files for batch testing."""
+    return [
+        ("doc1.pdf", create_temp_pdf("Document 1 content"), "application/pdf"),
+        ("doc2.txt", create_temp_text_file("Document 2 content"), "text/plain"),
+        ("doc3.pdf", create_temp_pdf("Document 3 content"), "application/pdf"),
+    ]
