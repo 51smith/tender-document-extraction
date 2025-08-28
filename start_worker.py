@@ -23,7 +23,10 @@ def main():
     print(f"Settings provider: {settings.llm_provider}")
     print(f"Settings model: {settings.llm_model}")
     
-    redis_conn = redis.from_url("redis://localhost:6379/0")
+    # Use Redis URL from environment (supports both Docker and local development)
+    redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+    print(f"Connecting to Redis: {redis_url}")
+    redis_conn = redis.from_url(redis_url)
     
     with Connection(redis_conn):
         worker = Worker(['default', 'high'], name='test-ollama-worker')

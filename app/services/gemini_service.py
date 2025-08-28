@@ -6,7 +6,6 @@ import time
 from typing import Any, Dict, List, Optional, Union
 
 import google.generativeai as genai
-from google import genai as genai_client
 from google.api_core import exceptions as google_exceptions
 from google.generativeai.types import HarmBlockThreshold, HarmCategory
 
@@ -81,7 +80,7 @@ class GeminiClient:
                 )
 
                 # Initialize the new client for file uploads
-                self._file_client = genai_client.Client(api_key=self.settings.google_api_key)
+                self._file_client = genai.Client(api_key=self.settings.google_api_key)
 
             logger.info(
                 f"LLM client initialized with provider: {settings.llm_provider}, model: {settings.llm_model}"

@@ -339,7 +339,7 @@ The service includes comprehensive performance validation:
 DEBUG=true python run_dev.py
 ```
 
-### Test Environment Issues
+### Test Environment 
 
 1. **Docker Test Environment**
    ```bash
@@ -358,6 +358,29 @@ DEBUG=true python run_dev.py
    python performance_test_runner.py  # Automated test suite
    ```
 
+### Dev Environment 
+1. **Start Ollama locally:**
+  ```bash 
+  ollama serve  
+  ```
+
+  2. **Start development environment:**
+  ```bash 
+  make docker-dev
+  ```
+  3. **View logs:**
+  ```bash 
+    make docker-dev-logs
+  ```
+  4. **Stop when finished:**
+  ```bash 
+  make docker-dev-down
+  ```
+    5. ** restart when needed:**
+  ```bash
+   # Restart services
+  make docker-dev-restart
+   ```
 ### Logs
 
 Application logs are available in:

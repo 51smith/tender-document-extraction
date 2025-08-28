@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Mock Ollama API server for integration testing."""
 
+import asyncio
 import json
 import random
 import time

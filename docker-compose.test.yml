@@ -24,11 +24,13 @@ services:
       - "8001:8000"
     environment:
       - REDIS_URL=redis://redis-test:6379/1
-      - ENVIRONMENT=testing
+      - ENVIRONMENT=development
       - DEBUG=true
       - LOG_LEVEL=DEBUG
-      - GOOGLE_API_KEY=test-key-placeholder
-      - GEMINI_MODEL=gemini-2.5-pro
+      - SECRET_KEY=test-secret-key-for-testing-purposes-minimum-32-characters-long
+      - LLM_PROVIDER=ollama
+      - LLM_MODEL=llama3:latest
+      - OLLAMA_BASE_URL=http://mock-ollama:11434
       - MAX_FILE_SIZE=10485760
       - ENABLE_USAGE_TRACKING=false
     depends_on:
@@ -112,7 +114,8 @@ services:
       target: development
     environment:
       - REDIS_URL=redis://redis-test:6379/2
-      - ENVIRONMENT=testing
+      - ENVIRONMENT=development
+      - SECRET_KEY=test-secret-key-for-testing-purposes-minimum-32-characters-long
       - TEST_SERVER_URL=http://app-test:8000
       - MOCK_GEMINI_URL=http://mock-gemini:8000
       - MOCK_OPENAI_URL=http://mock-openai:8000

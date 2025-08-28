@@ -1,6 +1,6 @@
 # Makefile for Tender Document Extraction Service
 
-.PHONY: help install install-dev setup-dev clean test test-unit test-integration test-api test-all lint format type-check security-check pre-commit run-dev run-worker run-all build docker-build docker-run quality-checks ci-checks
+.PHONY: help install install-dev setup-dev clean test test-unit test-integration test-api test-all lint format type-check security-check pre-commit run-dev run-worker run-all build docker-build docker-run docker-dev docker-dev-up docker-dev-down docker-dev-logs docker-dev-restart quality-checks ci-checks
 
 # Default target
 help:
@@ -32,6 +32,11 @@ help:
 	@echo "  build         - Build the application"
 	@echo "  docker-build  - Build Docker image"
 	@echo "  docker-run    - Run application in Docker"
+	@echo "  docker-dev    - Run development environment with Docker + Ollama"
+	@echo "  docker-dev-up - Start Docker development environment with Ollama"
+	@echo "  docker-dev-down - Stop Docker development environment"
+	@echo "  docker-dev-logs - View Docker development logs"
+	@echo "  docker-dev-restart - Restart Docker development services"
 	@echo "  docker-test   - Run containerized test environment"
 	@echo "  docker-test-up - Start test containers"
 	@echo "  docker-test-down - Stop test containers"
@@ -216,6 +221,66 @@ docker-build:
 docker-run: docker-build
 	@echo "Running Docker container..."
 	docker run -p 8000:8000 --env-file .env tender-extract:latest
+
+# Docker development environment with Ollama support
+docker-dev-up:
+	@echo "🐳 Starting Docker development environment with Ollama support..."
+	@if [ ! -f .env ]; then \
+		echo "📄 Creating .env file from template..."; \
+		cp .env.example .env; \
+		echo "✅ .env file created with development defaults"; \
+		echo "💡 You can edit .env file to customize settings if needed"; \
+	else \
+		echo "✅ .env file exists"; \
+	fi
+	@echo "🔍 Checking if Ollama is running locally..."
+	@if ! curl -s http://localhost:11434/api/version >/dev/null 2>&1; then \
+		echo "❌ Ollama is not running on localhost:11434"; \
+		echo "Please start Ollama with: ollama serve"; \
+		echo "Or install Ollama from: https://ollama.com"; \
+		exit 1; \
+	fi
+	@echo "✅ Ollama is running locally"
+	@echo "🔍 Checking if llama3:latest is available..."
+	@if ! ollama list | grep -q "llama3:latest"; then \
+		echo "📥 Pulling llama3:latest model..."; \
+		ollama pull llama3:latest; \
+	fi
+	@echo "✅ llama3:latest model is available"
+	docker-compose -f docker-compose.dev.yml up -d
+	@echo "⏳ Waiting for services to be healthy..."
+	@sleep 15
+	@echo "🔍 Checking service health..."
+	@if curl -s http://localhost:8000/health >/dev/null 2>&1; then \
+		echo "✅ Application is healthy and running at http://localhost:8000"; \
+	else \
+		echo "❌ Application health check failed"; \
+		echo "Check logs with: make docker-dev-logs"; \
+	fi
+	@echo ""
+	@echo "🎉 Docker development environment is ready!"
+	@echo "📋 Available services:"
+	@echo "   - Application: http://localhost:8000"
+	@echo "   - API Docs: http://localhost:8000/docs"
+	@echo "   - Redis: localhost:6379"
+	@echo "   - Ollama: localhost:11434"
+
+docker-dev-down:
+	@echo "🛑 Stopping Docker development environment..."
+	docker-compose -f docker-compose.dev.yml down
+	@echo "✅ Docker development environment stopped!"
+
+docker-dev-logs:
+	@echo "📋 Viewing Docker development logs..."
+	docker-compose -f docker-compose.dev.yml logs -f
+
+docker-dev-restart:
+	@echo "🔄 Restarting Docker development environment..."
+	docker-compose -f docker-compose.dev.yml restart
+
+docker-dev: docker-dev-up
+	@echo "🚀 Docker development environment started!"
+	@echo "Use 'make docker-dev-down' to stop when finished."
 
 # Phase 5: Docker Test Environment
 docker-test-up:
