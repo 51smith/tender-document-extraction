@@ -507,7 +507,7 @@ If Claude skips testing, the user should remind Claude that testing is mandatory
 
 ## Core Prompt Engineering Principles
 
-  "When working with Gemini API prompts, prioritize maintainability and systematic organization:"
+  "When working with API prompts, prioritize maintainability and systematic organization:"
 
   1. Centralized Prompt Management
     - Store all prompts in dedicated configuration files (YAML/JSON)

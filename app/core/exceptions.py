@@ -167,6 +167,84 @@ class LLMQuotaExceededError(LLMError):
         )
 
 
+# Provider-specific exceptions
+class OllamaConnectionError(LLMError):
+    """Ollama connection error."""
+
+    def __init__(self, endpoint: str, reason: str):
+        self.endpoint = endpoint
+        self.reason = reason
+        super().__init__(
+            f"Ollama connection failed to {endpoint}: {reason}",
+            details={"endpoint": endpoint, "reason": reason},
+            error_code="OLLAMA_CONNECTION_ERROR",
+        )
+
+
+class OpenAIRateLimitError(LLMRateLimitError):
+    """OpenAI-specific rate limit error."""
+
+    def __init__(self, retry_after: Optional[int] = None):
+        super().__init__(provider="OpenAI", retry_after=retry_after)
+
+
+class OpenAIConnectionError(LLMError):
+    """OpenAI connection error."""
+
+    def __init__(self, reason: str):
+        self.reason = reason
+        super().__init__(
+            f"OpenAI connection failed: {reason}",
+            details={"reason": reason},
+            error_code="OPENAI_CONNECTION_ERROR",
+        )
+
+
+# Job processing exceptions
+class JobExecutionTimeoutError(TenderExtractionException):
+    """Job execution timed out."""
+
+    def __init__(self, job_id: str, timeout_seconds: int):
+        self.job_id = job_id
+        self.timeout_seconds = timeout_seconds
+        super().__init__(
+            f"Job {job_id} timed out after {timeout_seconds} seconds",
+            details={"job_id": job_id, "timeout_seconds": timeout_seconds},
+            error_code="JOB_EXECUTION_TIMEOUT",
+        )
+
+
+class BatchProcessingError(TenderExtractionException):
+    """Batch processing error."""
+
+    def __init__(self, batch_id: str, failed_documents: list, reason: str):
+        self.batch_id = batch_id
+        self.failed_documents = failed_documents
+        self.reason = reason
+        super().__init__(
+            f"Batch processing failed for batch {batch_id}: {reason}",
+            details={
+                "batch_id": batch_id,
+                "failed_documents": failed_documents,
+                "reason": reason
+            },
+            error_code="BATCH_PROCESSING_ERROR",
+        )
+
+
+class DocumentValidationError(TenderExtractionException):
+    """Document validation error with field-specific details."""
+
+    def __init__(self, filename: str, field_errors: Dict[str, str]):
+        self.filename = filename
+        self.field_errors = field_errors
+        super().__init__(
+            f"Document validation failed for {filename}",
+            details={"filename": filename, "field_errors": field_errors},
+            error_code="DOCUMENT_VALIDATION_ERROR",
+        )
+
+
 # HTTP Exception mappings
 def map_to_http_exception(exc: TenderExtractionException) -> HTTPException:
     """Map internal exceptions to HTTP exceptions."""
@@ -180,6 +258,14 @@ def map_to_http_exception(exc: TenderExtractionException) -> HTTPException:
         ExtractionValidationError: status.HTTP_422_UNPROCESSABLE_ENTITY,
         JobNotFoundError: status.HTTP_404_NOT_FOUND,
         ServiceUnavailableError: status.HTTP_503_SERVICE_UNAVAILABLE,
+        # Provider-specific exceptions
+        OllamaConnectionError: status.HTTP_503_SERVICE_UNAVAILABLE,
+        OpenAIRateLimitError: status.HTTP_429_TOO_MANY_REQUESTS,
+        OpenAIConnectionError: status.HTTP_503_SERVICE_UNAVAILABLE,
+        # Job processing exceptions
+        JobExecutionTimeoutError: status.HTTP_408_REQUEST_TIMEOUT,
+        BatchProcessingError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+        DocumentValidationError: status.HTTP_400_BAD_REQUEST,
     }
 
     status_code = error_mappings.get(type(exc), status.HTTP_500_INTERNAL_SERVER_ERROR)
