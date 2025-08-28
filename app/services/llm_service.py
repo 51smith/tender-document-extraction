@@ -46,7 +46,6 @@ class BaseLLMService(ABC):
         """Internal implementation of content generation (without retry logic)."""
         pass
 
-    @abstractmethod
     async def generate_content(
         self,
         prompt: str,
