@@ -2,45 +2,43 @@
 
 import json
 import random
-import time
-from pathlib import Path
-from typing import Dict, Any, List
-
-from locust import HttpUser, task, between, events
 
 # Import test data manager
 import sys
+import time
+from pathlib import Path
+from typing import Any, Dict, List
+
+from locust import HttpUser, between, events, task
+
 sys.path.append(str(Path(__file__).parent.parent))
 from fixtures.test_data_manager import test_data_manager
 
 
 class TenderExtractionUser(HttpUser):
     """Simulates a user performing document extraction operations."""
-    
+
     wait_time = between(1, 5)  # Wait 1-5 seconds between requests
-    
+
     def on_start(self):
         """Initialize user session."""
         self.test_documents = self._generate_test_documents()
         self.job_ids = []  # Track submitted jobs
-    
+
     @task(3)
     def single_document_extraction(self):
         """Perform single document extraction (most common operation)."""
         document = random.choice(self.test_documents)
-        
+
         files = {"file": ("test_document.txt", document, "text/plain")}
         data = {
             "provider": random.choice(["gemini", "openai"]),
             "model": random.choice(["gemini-2.5-pro", "gpt-4-turbo-preview"]),
-            "temperature": 0.1
+            "temperature": 0.1,
         }
-        
+
         with self.client.post(
-            "/api/v1/extract",
-            files=files,
-            data=data,
-            catch_response=True
+            "/api/v1/extract", files=files, data=data, catch_response=True
         ) as response:
             if response.status_code == 200:
                 result = response.json()
@@ -53,28 +51,24 @@ class TenderExtractionUser(HttpUser):
                 response.success()  # Rate limiting is expected under load
             else:
                 response.failure(f"Unexpected status code: {response.status_code}")
-    
+
     @task(1)
     def batch_processing(self):
         """Perform batch document processing (less frequent but important)."""
         # Select subset of documents for batch
         batch_docs = random.sample(self.test_documents, min(5, len(self.test_documents)))
-        
+
         files = [
-            ("files", (f"batch_doc_{i}.txt", doc, "text/plain"))
-            for i, doc in enumerate(batch_docs)
+            ("files", (f"batch_doc_{i}.txt", doc, "text/plain")) for i, doc in enumerate(batch_docs)
         ]
-        
+
         data = {
             "provider": random.choice(["gemini", "openai"]),
-            "model": random.choice(["gemini-2.5-pro", "gpt-4-turbo-preview"])
+            "model": random.choice(["gemini-2.5-pro", "gpt-4-turbo-preview"]),
         }
-        
+
         with self.client.post(
-            "/api/v1/extract/batch",
-            files=files,
-            data=data,
-            catch_response=True
+            "/api/v1/extract/batch", files=files, data=data, catch_response=True
         ) as response:
             if response.status_code == 202:
                 result = response.json()
@@ -85,15 +79,15 @@ class TenderExtractionUser(HttpUser):
                     response.failure("No job_id in batch response")
             else:
                 response.failure(f"Batch submission failed: {response.status_code}")
-    
+
     @task(2)
     def check_job_status(self):
         """Check status of submitted batch jobs."""
         if not self.job_ids:
             return
-        
+
         job_id = random.choice(self.job_ids)
-        
+
         with self.client.get(f"/api/v1/jobs/{job_id}", catch_response=True) as response:
             if response.status_code == 200:
                 result = response.json()
@@ -110,7 +104,7 @@ class TenderExtractionUser(HttpUser):
                 response.success()
             else:
                 response.failure(f"Job status check failed: {response.status_code}")
-    
+
     @task(1)
     def list_jobs(self):
         """List all jobs for the user."""
@@ -123,7 +117,7 @@ class TenderExtractionUser(HttpUser):
                     response.failure("Invalid jobs list response")
             else:
                 response.failure(f"Jobs list failed: {response.status_code}")
-    
+
     @task(1)
     def health_check(self):
         """Check system health."""
@@ -136,53 +130,49 @@ class TenderExtractionUser(HttpUser):
                     response.failure("Invalid health response")
             else:
                 response.failure(f"Health check failed: {response.status_code}")
-    
+
     def _generate_test_documents(self) -> List[bytes]:
         """Generate test documents for load testing."""
         documents = []
-        
+
         # Generate documents of varying complexity
         for complexity in ["simple", "medium", "complex"]:
             for domain in ["construction", "technology", "healthcare"]:
                 for _ in range(2):  # 2 documents per complexity-domain combination
                     doc = test_data_manager.generate_tender_document(
-                        complexity=complexity,
-                        domain=domain
+                        complexity=complexity, domain=domain
                     )
                     text = test_data_manager.document_to_text(doc)
                     documents.append(text.encode())
-        
+
         return documents
 
 
 class HighVolumeUser(TenderExtractionUser):
     """User that generates high volume of requests for stress testing."""
-    
+
     wait_time = between(0.1, 1)  # Very short wait times
-    
+
     @task(5)
     def rapid_single_extractions(self):
         """Perform rapid single document extractions."""
         super().single_document_extraction()
-    
-    @task(1) 
+
+    @task(1)
     def concurrent_batch_submissions(self):
         """Submit multiple small batches rapidly."""
         # Submit smaller batches more frequently
         batch_docs = random.sample(self.test_documents, min(3, len(self.test_documents)))
-        
+
         files = [
             ("files", (f"stress_doc_{i}.txt", doc, "text/plain"))
             for i, doc in enumerate(batch_docs)
         ]
-        
+
         data = {"provider": "gemini", "model": "gemini-2.5-flash"}  # Use fast model
-        
+
         with self.client.post(
-            "/api/v1/extract/batch",
-            files=files,
-            data=data,
-            catch_response=True
+            "/api/v1/extract/batch", files=files, data=data, catch_response=True
         ) as response:
             if response.status_code in [202, 429]:  # Accept rate limiting
                 response.success()
@@ -192,14 +182,14 @@ class HighVolumeUser(TenderExtractionUser):
 
 class APIConsistencyUser(HttpUser):
     """User focused on testing API consistency and reliability."""
-    
+
     wait_time = between(2, 8)
-    
+
     def on_start(self):
         """Initialize consistency testing."""
         self.baseline_document = self._create_baseline_document()
         self.baseline_result = None
-    
+
     @task(3)
     def consistency_check_extraction(self):
         """Check extraction consistency for the same document."""
@@ -207,18 +197,15 @@ class APIConsistencyUser(HttpUser):
         data = {
             "provider": "gemini",
             "model": "gemini-2.5-pro",
-            "temperature": 0.0  # Deterministic output
+            "temperature": 0.0,  # Deterministic output
         }
-        
+
         with self.client.post(
-            "/api/v1/extract",
-            files=files,
-            data=data,
-            catch_response=True
+            "/api/v1/extract", files=files, data=data, catch_response=True
         ) as response:
             if response.status_code == 200:
                 result = response.json()
-                
+
                 if self.baseline_result is None:
                     self.baseline_result = result
                     response.success()
@@ -231,27 +218,27 @@ class APIConsistencyUser(HttpUser):
                         response.failure(f"Consistency check failed: {consistency_score:.2f}")
             else:
                 response.failure(f"Consistency test failed: {response.status_code}")
-    
+
     @task(1)
     def cross_provider_consistency(self):
         """Test consistency across different providers."""
         providers = ["gemini", "openai"]
         results = {}
-        
+
         for provider in providers:
             files = {"file": ("cross_provider_test.txt", self.baseline_document, "text/plain")}
             data = {
                 "provider": provider,
                 "model": "gemini-2.5-pro" if provider == "gemini" else "gpt-4-turbo-preview",
-                "temperature": 0.0
+                "temperature": 0.0,
             }
-            
+
             with self.client.post(
                 "/api/v1/extract",
                 files=files,
                 data=data,
                 catch_response=True,
-                name=f"/api/v1/extract/{provider}"
+                name=f"/api/v1/extract/{provider}",
             ) as response:
                 if response.status_code == 200:
                     results[provider] = response.json()
@@ -259,7 +246,7 @@ class APIConsistencyUser(HttpUser):
                 else:
                     response.failure(f"Cross-provider test failed for {provider}")
                     return
-        
+
         # Compare results across providers
         if len(results) == 2:
             provider1, provider2 = list(results.keys())
@@ -270,7 +257,7 @@ class APIConsistencyUser(HttpUser):
             else:
                 # Log inconsistency for analysis
                 print(f"Cross-provider consistency low: {consistency:.2f}")
-    
+
     def _create_baseline_document(self) -> bytes:
         """Create a stable baseline document for consistency testing."""
         doc = test_data_manager.generate_tender_document(complexity="medium")
@@ -278,26 +265,26 @@ class APIConsistencyUser(HttpUser):
         doc.project_title = "Infrastructure Development Project Alpha"
         doc.estimated_value = 2500000.0
         doc.currency = "EUR"
-        
+
         text = test_data_manager.document_to_text(doc)
         return text.encode()
-    
+
     def _calculate_consistency(self, result1: Dict, result2: Dict) -> float:
         """Calculate consistency score between two extraction results."""
         if not result1 or not result2:
             return 0.0
-        
+
         # Compare key fields
         key_fields = ["project_title", "estimated_value", "currency"]
         matches = 0
         total = 0
-        
+
         for field in key_fields:
             if field in result1 and field in result2:
                 total += 1
                 if result1[field] == result2[field]:
                     matches += 1
-        
+
         return matches / total if total > 0 else 0.0
 
 
@@ -310,6 +297,7 @@ def on_test_start(environment, **kwargs):
         "timestamp,name,response_time,response_length,error\n"
     )
 
+
 @events.test_stop.add_listener
 def on_test_stop(environment, **kwargs):
     """Cleanup and final reporting."""
@@ -317,15 +305,21 @@ def on_test_stop(environment, **kwargs):
     print(f"Total failures: {environment.stats.total.num_failures}")
     print(f"Average response time: {environment.stats.total.avg_response_time:.2f}ms")
 
+
 # Define different test scenarios
 class WebsiteUser(TenderExtractionUser):
     """Default user for general load testing."""
+
     pass
+
 
 class StressTestUser(HighVolumeUser):
     """User for stress testing scenarios."""
+
     pass
+
 
 class ConsistencyTestUser(APIConsistencyUser):
     """User for consistency and reliability testing."""
+
     pass

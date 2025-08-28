@@ -10,7 +10,6 @@ import pytest
 from fastapi import HTTPException, status
 from fastapi.testclient import TestClient
 
-from main import app
 from app.models.extraction import (
     BatchExtractionRequest,
     ConfidenceScores,
@@ -22,7 +21,7 @@ from app.models.extraction import (
     TenderExtractedData,
     TenderExtractionResult,
 )
-
+from main import app
 
 # Use the sync_client fixture from conftest.py
 
@@ -74,7 +73,7 @@ def sample_extraction_job():
 def completed_extraction_job():
     """Completed extraction job with results."""
     job_id = str(uuid4())
-    
+
     # Create proper TenderExtractionResult with all required fields
     extraction_result = TenderExtractionResult(
         extracted_data=TenderExtractedData(
@@ -85,30 +84,30 @@ def completed_extraction_job():
             project_description="Test project description",
             evaluation_criteria=[],
             submission_requirements="Standard requirements",
-            contact_information="test@example.com"
+            contact_information="test@example.com",
         ),
         confidence_scores=ConfidenceScores(
             project_title=0.95,
             estimated_value=0.90,
             submission_deadline=0.85,
             contracting_authority=0.90,
-            overall=0.90
+            overall=0.90,
         ),
         extraction_notes=ExtractionNotes(
             total_fields=8,
             extracted_fields=7,
             skipped_fields=[],
             warnings=[],
-            processing_notes="Successfully extracted all key information"
+            processing_notes="Successfully extracted all key information",
         ),
         processing_metadata=ProcessingMetadata(
             processing_time=2.5,
             model="gemini-2.5-pro",
             actual_tokens=1250,
-            timestamp=datetime.fromisoformat("2024-01-01T00:30:00+00:00")
-        )
+            timestamp=datetime.fromisoformat("2024-01-01T00:30:00+00:00"),
+        ),
     )
-    
+
     batch_request = BatchExtractionRequest(
         documents=[
             DocumentExtractionRequest(
@@ -120,7 +119,7 @@ def completed_extraction_job():
         ],
         priority=0,
     )
-    
+
     return ExtractionJob(
         job_id=job_id,
         status=ExtractionStatus.COMPLETED,
@@ -169,7 +168,9 @@ class TestBatchExtraction:
         assert batch_request.documents[0].filename == "test.pdf"
 
     @patch("app.routers.extraction.get_job_manager")
-    def test_batch_extraction_multiple_files(self, mock_get_job_manager, sync_client, mock_job_manager):
+    def test_batch_extraction_multiple_files(
+        self, mock_get_job_manager, sync_client, mock_job_manager
+    ):
         """Test batch extraction with multiple files."""
         # Setup
         job_id = str(uuid4())
@@ -230,7 +231,9 @@ class TestBatchExtraction:
         assert "too large" in response.json()["detail"]
 
     @patch("app.routers.extraction.get_job_manager")
-    def test_batch_extraction_with_template_override(self, mock_get_job_manager, sync_client, mock_job_manager):
+    def test_batch_extraction_with_template_override(
+        self, mock_get_job_manager, sync_client, mock_job_manager
+    ):
         """Test batch extraction with template override."""
         # Setup
         job_id = str(uuid4())
@@ -264,7 +267,9 @@ class TestBatchExtraction:
         assert response.status_code == 422  # Validation error
 
     @patch("app.routers.extraction.get_job_manager")
-    def test_batch_extraction_job_manager_error(self, mock_get_job_manager, sync_client, mock_job_manager):
+    def test_batch_extraction_job_manager_error(
+        self, mock_get_job_manager, sync_client, mock_job_manager
+    ):
         """Test batch extraction when job manager fails."""
         # Setup
         mock_get_job_manager.return_value = mock_job_manager
@@ -287,13 +292,13 @@ class TestJobStatus:
         """Test successful job status retrieval."""
         # Setup - Override the dependency
         from app.services.job_manager import get_job_manager
-        
+
         def mock_get_job_manager_override():
             return mock_job_manager
-        
+
         app.dependency_overrides[get_job_manager] = mock_get_job_manager_override
         mock_job_manager.get_job = AsyncMock(return_value=sample_extraction_job)
-        
+
         try:
             # Execute
             response = sync_client.get(f"/api/v1/jobs/{sample_extraction_job.job_id}")
@@ -312,15 +317,15 @@ class TestJobStatus:
         """Test job status for non-existent job."""
         from app.core.exceptions import JobNotFoundError
         from app.services.job_manager import get_job_manager
-        
+
         # Setup - Override the dependency
         def mock_get_job_manager_override():
             return mock_job_manager
-        
+
         job_id = str(uuid4())
         app.dependency_overrides[get_job_manager] = mock_get_job_manager_override
         mock_job_manager.get_job = AsyncMock(side_effect=JobNotFoundError(job_id))
-        
+
         try:
             # Execute
             response = sync_client.get(f"/api/v1/jobs/{job_id}")
@@ -420,7 +425,9 @@ class TestJobListing:
     """Tests for job listing endpoint."""
 
     @patch("app.routers.extraction.get_job_manager")
-    def test_list_jobs_default(self, mock_get_job_manager, sync_client, mock_job_manager, sample_extraction_job):
+    def test_list_jobs_default(
+        self, mock_get_job_manager, sync_client, mock_job_manager, sample_extraction_job
+    ):
         """Test job listing with default parameters."""
         # Setup
         mock_get_job_manager.return_value = mock_job_manager
@@ -487,7 +494,9 @@ class TestJobExport:
     """Tests for job export endpoint."""
 
     @patch("app.routers.extraction.get_job_manager")
-    def test_export_job_results_json(self, mock_get_job_manager, sync_client, mock_job_manager, completed_extraction_job):
+    def test_export_job_results_json(
+        self, mock_get_job_manager, sync_client, mock_job_manager, completed_extraction_job
+    ):
         """Test exporting completed job results as JSON."""
         # Setup
         mock_get_job_manager.return_value = mock_job_manager
@@ -507,7 +516,9 @@ class TestJobExport:
         assert response_data["project_title"] == "Test Project"
 
     @patch("app.routers.extraction.get_job_manager")
-    def test_export_job_not_completed(self, mock_get_job_manager, sync_client, mock_job_manager, sample_extraction_job):
+    def test_export_job_not_completed(
+        self, mock_get_job_manager, sync_client, mock_job_manager, sample_extraction_job
+    ):
         """Test exporting job that is not completed."""
         # Setup
         mock_get_job_manager.return_value = mock_job_manager
@@ -521,7 +532,9 @@ class TestJobExport:
         assert "not completed" in response.json()["detail"]
 
     @patch("app.routers.extraction.get_job_manager")
-    def test_export_job_no_results(self, mock_get_job_manager, sync_client, mock_job_manager, completed_extraction_job):
+    def test_export_job_no_results(
+        self, mock_get_job_manager, sync_client, mock_job_manager, completed_extraction_job
+    ):
         """Test exporting completed job with no results."""
         # Setup - completed job but no results
         completed_extraction_job.result = None
@@ -536,14 +549,18 @@ class TestJobExport:
         assert "No results found" in response.json()["detail"]
 
     @patch("app.routers.extraction.get_job_manager")
-    def test_export_job_unsupported_format(self, mock_get_job_manager, sync_client, mock_job_manager, completed_extraction_job):
+    def test_export_job_unsupported_format(
+        self, mock_get_job_manager, sync_client, mock_job_manager, completed_extraction_job
+    ):
         """Test exporting job with unsupported format."""
         # Setup
         mock_get_job_manager.return_value = mock_job_manager
         mock_job_manager.get_job.return_value = completed_extraction_job
 
         # Execute
-        response = sync_client.get(f"/api/v1/jobs/{completed_extraction_job.job_id}/export?format=csv")
+        response = sync_client.get(
+            f"/api/v1/jobs/{completed_extraction_job.job_id}/export?format=csv"
+        )
 
         # Assert
         assert response.status_code == 400
@@ -555,7 +572,9 @@ class TestJobExport:
         # Setup
         job_id = str(uuid4())
         mock_get_job_manager.return_value = mock_job_manager
-        mock_job_manager.get_job.side_effect = HTTPException(status_code=404, detail="Job not found")
+        mock_job_manager.get_job.side_effect = HTTPException(
+            status_code=404, detail="Job not found"
+        )
 
         # Execute
         response = sync_client.get(f"/api/v1/jobs/{job_id}/export")
@@ -590,7 +609,9 @@ class TestStatistics:
         assert response_data == expected_stats
 
     @patch("app.routers.extraction.get_job_manager")
-    def test_get_extraction_statistics_error(self, mock_get_job_manager, sync_client, mock_job_manager):
+    def test_get_extraction_statistics_error(
+        self, mock_get_job_manager, sync_client, mock_job_manager
+    ):
         """Test getting statistics with server error."""
         # Setup
         mock_get_job_manager.return_value = mock_job_manager

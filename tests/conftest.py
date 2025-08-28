@@ -21,22 +21,22 @@ from main import app
 
 # Import test fixtures and utilities
 from tests.fixtures.mocks import (
-    MockLLMService,
-    MockRedisClient,
+    MockDocumentProcessor,
     MockExtractionWorker,
     MockJobManager,
-    MockDocumentProcessor,
+    MockLLMService,
+    MockRedisClient,
     MockUsageTracker,
-    create_mock_extraction_result,
     create_mock_error_scenarios,
-    create_performance_test_data
+    create_mock_extraction_result,
+    create_performance_test_data,
 )
 from tests.fixtures.test_utils import (
     TestAPIClient,
+    create_temp_docx_file,
     create_temp_pdf,
     create_temp_text_file,
-    create_temp_docx_file,
-    setup_test_environment
+    setup_test_environment,
 )
 
 
@@ -426,13 +426,10 @@ def sample_job_data():
         "job_type": "batch_extraction",
         "status": "queued",
         "files_count": 3,
-        "config": {
-            "config_name": "default",
-            "enable_multimodal": True
-        },
+        "config": {"config_name": "default", "enable_multimodal": True},
         "created_at": 1234567890.0,
         "updated_at": 1234567890.0,
-        "progress": 0.0
+        "progress": 0.0,
     }
 
 

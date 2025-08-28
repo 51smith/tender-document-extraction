@@ -223,11 +223,7 @@ class BatchProcessingError(TenderExtractionException):
         self.reason = reason
         super().__init__(
             f"Batch processing failed for batch {batch_id}: {reason}",
-            details={
-                "batch_id": batch_id,
-                "failed_documents": failed_documents,
-                "reason": reason
-            },
+            details={"batch_id": batch_id, "failed_documents": failed_documents, "reason": reason},
             error_code="BATCH_PROCESSING_ERROR",
         )
 

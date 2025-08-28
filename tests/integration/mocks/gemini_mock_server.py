@@ -2,19 +2,20 @@
 """Mock Gemini API server for integration testing."""
 
 import json
-import time
 import random
-from typing import Dict, Any, List
-from fastapi import FastAPI, HTTPException, Header, Request
-from pydantic import BaseModel
-import uvicorn
+import time
+from typing import Any, Dict, List
 
+import uvicorn
+from fastapi import FastAPI, Header, HTTPException, Request
+from pydantic import BaseModel
 
 app = FastAPI(title="Mock Gemini API", version="1.0.0")
 
 
 class GenerateContentRequest(BaseModel):
     """Gemini generate content request model."""
+
     contents: List[Dict[str, Any]]
     generationConfig: Dict[str, Any] = {}
     safetySettings: List[Dict[str, Any]] = []
@@ -22,6 +23,7 @@ class GenerateContentRequest(BaseModel):
 
 class GenerateContentResponse(BaseModel):
     """Gemini generate content response model."""
+
     candidates: List[Dict[str, Any]]
     usageMetadata: Dict[str, Any]
 
@@ -33,50 +35,49 @@ MOCK_EXTRACTION_RESPONSE = {
             "content": {
                 "parts": [
                     {
-                        "text": json.dumps({
-                            "project_title": "Highway Construction Project A1",
-                            "estimated_value": 5000000.0,
-                            "currency": "EUR",
-                            "submission_deadline": "2024-12-15T23:59:59Z",
-                            "contracting_authority": {
-                                "name": "Department of Transportation",
-                                "contact": "procurement@dot.gov"
-                            },
-                            "evaluation_criteria": [
-                                {"name": "Technical Capability", "weight": 0.4},
-                                {"name": "Price", "weight": 0.4},
-                                {"name": "Experience", "weight": 0.2}
-                            ],
-                            "confidence_scores": {
-                                "project_title": 0.95,
-                                "estimated_value": 0.88,
-                                "submission_deadline": 0.92,
-                                "contracting_authority": 0.91,
-                                "evaluation_criteria": 0.85
-                            },
-                            "extraction_metadata": {
-                                "processing_time": 2.3,
-                                "confidence_overall": 0.90,
-                                "flags": []
+                        "text": json.dumps(
+                            {
+                                "project_title": "Highway Construction Project A1",
+                                "estimated_value": 5000000.0,
+                                "currency": "EUR",
+                                "submission_deadline": "2024-12-15T23:59:59Z",
+                                "contracting_authority": {
+                                    "name": "Department of Transportation",
+                                    "contact": "procurement@dot.gov",
+                                },
+                                "evaluation_criteria": [
+                                    {"name": "Technical Capability", "weight": 0.4},
+                                    {"name": "Price", "weight": 0.4},
+                                    {"name": "Experience", "weight": 0.2},
+                                ],
+                                "confidence_scores": {
+                                    "project_title": 0.95,
+                                    "estimated_value": 0.88,
+                                    "submission_deadline": 0.92,
+                                    "contracting_authority": 0.91,
+                                    "evaluation_criteria": 0.85,
+                                },
+                                "extraction_metadata": {
+                                    "processing_time": 2.3,
+                                    "confidence_overall": 0.90,
+                                    "flags": [],
+                                },
                             }
-                        })
+                        )
                     }
                 ]
             },
             "finishReason": "STOP",
             "safetyRatings": [
-                {
-                    "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    "probability": "NEGLIGIBLE"
-                }
-            ]
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "probability": "NEGLIGIBLE"}
+            ],
         }
     ],
     "usageMetadata": {
         "promptTokenCount": 1247,
         "candidatesTokenCount": 423,
-        "totalTokenCount": 1670
-    }
+        "totalTokenCount": 1670,
+    },
 }
 
 MOCK_ERROR_RESPONSES = {
@@ -89,9 +90,9 @@ MOCK_ERROR_RESPONSES = {
                 {
                     "@type": "type.googleapis.com/google.rpc.ErrorInfo",
                     "reason": "RATE_LIMIT_EXCEEDED",
-                    "domain": "googleapis.com"
+                    "domain": "googleapis.com",
                 }
-            ]
+            ],
         }
     },
     "quota_exceeded": {
@@ -103,9 +104,9 @@ MOCK_ERROR_RESPONSES = {
                 {
                     "@type": "type.googleapis.com/google.rpc.ErrorInfo",
                     "reason": "QUOTA_EXCEEDED",
-                    "domain": "googleapis.com"
+                    "domain": "googleapis.com",
                 }
-            ]
+            ],
         }
     },
     "safety_filter": {
@@ -116,17 +117,13 @@ MOCK_ERROR_RESPONSES = {
                     {
                         "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
                         "probability": "HIGH",
-                        "blocked": True
+                        "blocked": True,
                     }
-                ]
+                ],
             }
         ],
-        "usageMetadata": {
-            "promptTokenCount": 50,
-            "candidatesTokenCount": 0,
-            "totalTokenCount": 50
-        }
-    }
+        "usageMetadata": {"promptTokenCount": 50, "candidatesTokenCount": 0, "totalTokenCount": 50},
+    },
 }
 
 
@@ -144,24 +141,22 @@ async def health_check():
 
 @app.post("/v1beta/models/gemini-2.5-pro:generateContent")
 async def generate_content(
-    request: GenerateContentRequest,
-    x_goog_api_key: str = Header(None, alias="x-goog-api-key")
+    request: GenerateContentRequest, x_goog_api_key: str = Header(None, alias="x-goog-api-key")
 ):
     """Mock Gemini generateContent endpoint."""
     global request_count, failure_mode, failure_probability
-    
+
     request_count += 1
-    
+
     # Simulate API key validation
     if not x_goog_api_key or x_goog_api_key == "invalid-key":
         raise HTTPException(
-            status_code=401,
-            detail={"error": {"code": 401, "message": "Invalid API key"}}
+            status_code=401, detail={"error": {"code": 401, "message": "Invalid API key"}}
         )
-    
+
     # Simulate processing delay
     await asyncio.sleep(random.uniform(0.1, 0.5))
-    
+
     # Check for configured failure scenarios
     if failure_mode and (failure_probability >= 1.0 or random.random() < failure_probability):
         if failure_mode == "rate_limit":
@@ -171,8 +166,10 @@ async def generate_content(
         elif failure_mode == "safety_filter":
             return MOCK_ERROR_RESPONSES["safety_filter"]
         elif failure_mode == "network_error":
-            raise HTTPException(status_code=503, detail={"error": {"message": "Service temporarily unavailable"}})
-    
+            raise HTTPException(
+                status_code=503, detail={"error": {"message": "Service temporarily unavailable"}}
+            )
+
     # Analyze request content to provide contextual responses
     prompt_text = ""
     if request.contents:
@@ -181,7 +178,7 @@ async def generate_content(
                 for part in content["parts"]:
                     if "text" in part:
                         prompt_text += part["text"]
-    
+
     # Return different responses based on prompt content
     if "batch" in prompt_text.lower():
         # Simulate batch processing response
@@ -190,7 +187,9 @@ async def generate_content(
         return response
     elif "error" in prompt_text.lower():
         # Trigger error for testing
-        raise HTTPException(status_code=400, detail={"error": {"message": "Invalid request format"}})
+        raise HTTPException(
+            status_code=400, detail={"error": {"message": "Invalid request format"}}
+        )
     else:
         # Standard extraction response
         return MOCK_EXTRACTION_RESPONSE
@@ -198,8 +197,7 @@ async def generate_content(
 
 @app.post("/v1beta/models/gemini-2.5-flash:generateContent")
 async def generate_content_flash(
-    request: GenerateContentRequest,
-    x_goog_api_key: str = Header(None, alias="x-goog-api-key")
+    request: GenerateContentRequest, x_goog_api_key: str = Header(None, alias="x-goog-api-key")
 ):
     """Mock Gemini Flash generateContent endpoint."""
     # Faster response with lower token usage
@@ -207,7 +205,7 @@ async def generate_content_flash(
     response["usageMetadata"] = {
         "promptTokenCount": 500,
         "candidatesTokenCount": 200,
-        "totalTokenCount": 700
+        "totalTokenCount": 700,
     }
     await asyncio.sleep(random.uniform(0.05, 0.2))
     return response
@@ -240,10 +238,11 @@ async def get_stats():
     return {
         "request_count": request_count,
         "failure_mode": failure_mode,
-        "failure_probability": failure_probability
+        "failure_probability": failure_probability,
     }
 
 
 if __name__ == "__main__":
     import asyncio
+
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")

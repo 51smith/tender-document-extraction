@@ -65,14 +65,14 @@ class TestGeminiService:
                             "estimated_value": {"amount": 1000000, "currency": "EUR"},
                         }
                     ),
-                    "usage": {"total_token_count": 1500}
+                    "usage": {"total_token_count": 1500},
                 }
             )
             mock_instance.health_check = AsyncMock(return_value=True)
             mock_instance.get_provider_name.return_value = "gemini"
             mock_instance.get_provider_info.return_value = {
-                "provider": "gemini", 
-                "model": "gemini-2.5-pro"
+                "provider": "gemini",
+                "model": "gemini-2.5-pro",
             }
             mock_service.return_value = mock_instance
             yield mock_instance
@@ -122,7 +122,9 @@ class TestGeminiService:
         assert result["_metadata"]["actual_tokens"] == 1500
 
     @pytest.mark.asyncio
-    async def test_json_parsing_from_markdown(self, mock_gemini_settings, mock_genai_module, mock_llm_service):
+    async def test_json_parsing_from_markdown(
+        self, mock_gemini_settings, mock_genai_module, mock_llm_service
+    ):
         """Test JSON parsing from markdown code blocks."""
         mock_genai, mock_model = mock_genai_module
 
@@ -152,7 +154,9 @@ class TestGeminiService:
         assert result["project_title"] == "Highway Project"
 
     @pytest.mark.asyncio
-    async def test_rate_limit_handling(self, mock_gemini_settings, mock_genai_module, mock_llm_service):
+    async def test_rate_limit_handling(
+        self, mock_gemini_settings, mock_genai_module, mock_llm_service
+    ):
         """Test rate limit error handling and retries."""
         mock_genai, mock_model = mock_genai_module
 
@@ -174,7 +178,9 @@ class TestGeminiService:
         assert mock_model.generate_content.call_count == 2
 
     @pytest.mark.asyncio
-    async def test_quota_exceeded_error(self, mock_gemini_settings, mock_genai_module, mock_llm_service):
+    async def test_quota_exceeded_error(
+        self, mock_gemini_settings, mock_genai_module, mock_llm_service
+    ):
         """Test quota exceeded error handling."""
         mock_genai, mock_model = mock_genai_module
 
@@ -189,7 +195,9 @@ class TestGeminiService:
             await client.generate_content(["Test prompt"])
 
     @pytest.mark.asyncio
-    async def test_invalid_argument_error(self, mock_gemini_settings, mock_genai_module, mock_llm_service):
+    async def test_invalid_argument_error(
+        self, mock_gemini_settings, mock_genai_module, mock_llm_service
+    ):
         """Test invalid argument error handling."""
         mock_genai, mock_model = mock_genai_module
 
@@ -365,13 +373,18 @@ class TestGeminiServiceCoverageMissingLines:
         """Mock the LLM service."""
         with patch("app.services.gemini_service.get_llm_service") as mock_service:
             mock_instance = MagicMock()
-            mock_instance.generate_content = AsyncMock(return_value={
-                "response": json.dumps({"project_title": "Test"}),
-                "usage": {"total_token_count": 500}
-            })
+            mock_instance.generate_content = AsyncMock(
+                return_value={
+                    "response": json.dumps({"project_title": "Test"}),
+                    "usage": {"total_token_count": 500},
+                }
+            )
             mock_instance.health_check = AsyncMock(return_value=True)
             mock_instance.get_provider_name.return_value = "ollama"
-            mock_instance.get_provider_info.return_value = {"provider": "ollama", "model": "llama3.3"}
+            mock_instance.get_provider_info.return_value = {
+                "provider": "ollama",
+                "model": "llama3.3",
+            }
             mock_service.return_value = mock_instance
             yield mock_instance
 
@@ -391,12 +404,15 @@ class TestGeminiServiceCoverageMissingLines:
 
     def test_init_gemini_provider_full_setup(self):
         """Test full Gemini provider initialization (lines 46-84)."""
-        with patch("app.services.gemini_service.settings") as mock_settings, \
-             patch("app.services.gemini_service.get_llm_service") as mock_llm_service, \
-             patch("app.services.gemini_service.get_rate_limiter") as mock_rate_limiter, \
-             patch("app.services.gemini_service.genai") as mock_genai, \
-             patch("app.services.gemini_service.genai_client") as mock_genai_client:
-            
+        with patch("app.services.gemini_service.settings") as mock_settings, patch(
+            "app.services.gemini_service.get_llm_service"
+        ) as mock_llm_service, patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ) as mock_rate_limiter, patch(
+            "app.services.gemini_service.genai"
+        ) as mock_genai, patch(
+            "app.services.gemini_service.genai_client"
+        ) as mock_genai_client:
             # Setup Gemini provider settings
             mock_settings.llm_provider = "gemini"
             mock_settings.google_api_key = "test-key"
@@ -426,14 +442,15 @@ class TestGeminiServiceCoverageMissingLines:
 
     def test_init_exception_handling(self):
         """Test initialization exception handling (lines 90-92)."""
-        with patch("app.services.gemini_service.get_llm_service") as mock_llm_service, \
-             patch("app.services.gemini_service.get_rate_limiter") as mock_rate_limiter:
-            
+        with patch("app.services.gemini_service.get_llm_service") as mock_llm_service, patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ) as mock_rate_limiter:
             # Make LLM service initialization fail
             mock_llm_service.side_effect = Exception("LLM service failed")
             mock_rate_limiter.return_value = MagicMock()
 
             from app.core.exceptions import ServiceUnavailableError
+
             with pytest.raises(ServiceUnavailableError) as exc_info:
                 GeminiClient()
 
@@ -441,15 +458,15 @@ class TestGeminiServiceCoverageMissingLines:
 
     def test_estimate_tokens_string(self):
         """Test token estimation for string content (lines 96-98)."""
-        with patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter"):
-            
+        with patch("app.services.gemini_service.get_llm_service"), patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ):
             client = GeminiClient()
-            
+
             # Test short string (should return minimum 100)
             short_estimate = client._estimate_tokens("hi")
             assert short_estimate == 100
-            
+
             # Test longer string
             long_string = "A" * 1000
             long_estimate = client._estimate_tokens(long_string)
@@ -457,31 +474,31 @@ class TestGeminiServiceCoverageMissingLines:
 
     def test_estimate_tokens_multimodal(self):
         """Test token estimation for multimodal content (lines 99-109)."""
-        with patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter"):
-            
+        with patch("app.services.gemini_service.get_llm_service"), patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ):
             client = GeminiClient()
-            
+
             # Test multimodal content with image
             image_obj = MagicMock()
             image_obj.mime_type = "image/jpeg"
-            
+
             multimodal_content = [
                 "Some text content",  # 4 tokens
                 image_obj,  # 1000 tokens
-                "More text"  # 2 tokens
+                "More text",  # 2 tokens
             ]
-            
+
             estimate = client._estimate_tokens(multimodal_content)
             assert estimate == 1006  # 4 + 1000 + 2
 
     def test_estimate_tokens_default(self):
         """Test token estimation default case (lines 110-111)."""
-        with patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter"):
-            
+        with patch("app.services.gemini_service.get_llm_service"), patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ):
             client = GeminiClient()
-            
+
             # Test with non-string, non-list input
             estimate = client._estimate_tokens(42)
             assert estimate == 1000  # Default conservative estimate
@@ -489,42 +506,43 @@ class TestGeminiServiceCoverageMissingLines:
     @pytest.mark.asyncio
     async def test_generate_content_timeout_error(self):
         """Test timeout error handling (lines 158-160)."""
-        with patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter") as mock_rate_limiter:
-            
+        with patch("app.services.gemini_service.get_llm_service"), patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ) as mock_rate_limiter:
             mock_rate_limiter.return_value.wait_for_capacity = AsyncMock()
-            
+
             client = GeminiClient()
-            
+
             with patch("asyncio.wait_for", side_effect=asyncio.TimeoutError):
                 with pytest.raises(GeminiAPIException) as exc_info:
                     await client.generate_content("test", timeout=1.0, retry_attempts=1)
-                
+
                 assert "timed out after 1.0s" in str(exc_info.value)
 
-    @pytest.mark.asyncio 
+    @pytest.mark.asyncio
     async def test_generate_content_rate_limit_retry(self):
         """Test rate limit error with exponential backoff (lines 166-170)."""
         from google.api_core.exceptions import ResourceExhausted
-        
-        with patch("app.services.gemini_service.get_llm_service") as mock_llm, \
-             patch("app.services.gemini_service.get_rate_limiter") as mock_rate_limiter, \
-             patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            
+
+        with patch("app.services.gemini_service.get_llm_service") as mock_llm, patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ) as mock_rate_limiter, patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             mock_rate_limiter.return_value.wait_for_capacity = AsyncMock()
             mock_rate_limiter.return_value.record_token_usage = MagicMock()
-            
+
             client = GeminiClient()
-            
+
             # Mock _generate_content_async to raise rate limit error then succeed
             responses = [
                 ResourceExhausted("Rate limit exceeded"),
-                MagicMock(text='{"success": true}', usage_metadata=MagicMock(total_token_count=100))
+                MagicMock(
+                    text='{"success": true}', usage_metadata=MagicMock(total_token_count=100)
+                ),
             ]
-            
-            with patch.object(client, '_generate_content_async', side_effect=responses):
+
+            with patch.object(client, "_generate_content_async", side_effect=responses):
                 result = await client.generate_content("test", retry_attempts=2)
-                
+
                 # Verify exponential backoff was applied (line 168)
                 mock_sleep.assert_called_with(2.0)  # 2^1 * 1.0
                 assert result["success"] is True
@@ -533,25 +551,26 @@ class TestGeminiServiceCoverageMissingLines:
     async def test_generate_content_api_error_retry(self):
         """Test Google API error with exponential backoff (lines 176-182)."""
         from google.api_core.exceptions import GoogleAPICallError
-        
-        with patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter") as mock_rate_limiter, \
-             patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            
+
+        with patch("app.services.gemini_service.get_llm_service"), patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ) as mock_rate_limiter, patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             mock_rate_limiter.return_value.wait_for_capacity = AsyncMock()
             mock_rate_limiter.return_value.record_token_usage = MagicMock()
-            
+
             client = GeminiClient()
-            
+
             # Mock API error then success
             responses = [
                 GoogleAPICallError("Temporary API error"),
-                MagicMock(text='{"success": true}', usage_metadata=MagicMock(total_token_count=100))
+                MagicMock(
+                    text='{"success": true}', usage_metadata=MagicMock(total_token_count=100)
+                ),
             ]
-            
-            with patch.object(client, '_generate_content_async', side_effect=responses):
+
+            with patch.object(client, "_generate_content_async", side_effect=responses):
                 result = await client.generate_content("test", retry_attempts=2)
-                
+
                 # Verify exponential backoff with 0.5 multiplier (line 181)
                 mock_sleep.assert_called_with(1.0)  # 2^1 * 0.5
                 assert result["success"] is True
@@ -559,23 +578,24 @@ class TestGeminiServiceCoverageMissingLines:
     @pytest.mark.asyncio
     async def test_generate_content_unexpected_error(self):
         """Test unexpected error handling (lines 184-189)."""
-        with patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter") as mock_rate_limiter, \
-             patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            
+        with patch("app.services.gemini_service.get_llm_service"), patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ) as mock_rate_limiter, patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             mock_rate_limiter.return_value.wait_for_capacity = AsyncMock()
-            
+
             client = GeminiClient()
-            
+
             # Mock unexpected error then success
             responses = [
                 ValueError("Unexpected error"),
-                MagicMock(text='{"success": true}', usage_metadata=MagicMock(total_token_count=100))
+                MagicMock(
+                    text='{"success": true}', usage_metadata=MagicMock(total_token_count=100)
+                ),
             ]
-            
-            with patch.object(client, '_generate_content_async', side_effect=responses):
+
+            with patch.object(client, "_generate_content_async", side_effect=responses):
                 result = await client.generate_content("test", retry_attempts=2)
-                
+
                 # Verify 1.0 second wait for unexpected errors (line 189)
                 mock_sleep.assert_called_with(1.0)
                 assert result["success"] is True
@@ -583,41 +603,43 @@ class TestGeminiServiceCoverageMissingLines:
     @pytest.mark.asyncio
     async def test_generate_content_all_retries_fail(self):
         """Test when all retry attempts fail (lines 192-193)."""
-        with patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter") as mock_rate_limiter:
-            
+        with patch("app.services.gemini_service.get_llm_service"), patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ) as mock_rate_limiter:
             mock_rate_limiter.return_value.wait_for_capacity = AsyncMock()
-            
+
             client = GeminiClient()
-            
+
             # Mock all attempts to fail
-            with patch.object(client, '_generate_content_async', side_effect=Exception("Persistent error")):
+            with patch.object(
+                client, "_generate_content_async", side_effect=Exception("Persistent error")
+            ):
                 with pytest.raises(GeminiAPIException) as exc_info:
                     await client.generate_content("test", retry_attempts=2)
-                
+
                 assert "Unexpected error: Persistent error" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_generate_content_async_multimodal_gemini(self):
         """Test multimodal content with Gemini provider (lines 199-206)."""
-        with patch("app.services.gemini_service.settings") as mock_settings, \
-             patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter"), \
-             patch("asyncio.get_event_loop") as mock_get_loop:
-            
+        with patch("app.services.gemini_service.settings") as mock_settings, patch(
+            "app.services.gemini_service.get_llm_service"
+        ), patch("app.services.gemini_service.get_rate_limiter"), patch(
+            "asyncio.get_event_loop"
+        ) as mock_get_loop:
             mock_settings.llm_provider = "gemini"
-            
+
             client = GeminiClient()
             client._model = MagicMock()
-            
+
             mock_loop = MagicMock()
             mock_get_loop.return_value = mock_loop
             mock_response = MagicMock()
             mock_loop.run_in_executor.return_value = asyncio.Future()
             mock_loop.run_in_executor.return_value.set_result(mock_response)
-            
+
             result = await client._generate_content_async(["text", "image"])
-            
+
             # Verify multimodal path was taken (line 206)
             mock_loop.run_in_executor.assert_called_once()
             assert result == mock_response
@@ -625,30 +647,27 @@ class TestGeminiServiceCoverageMissingLines:
     @pytest.mark.asyncio
     async def test_generate_content_async_text_conversion(self):
         """Test multimodal to text conversion for non-Gemini (lines 209-217)."""
-        with patch("app.services.gemini_service.settings") as mock_settings, \
-             patch("app.services.gemini_service.get_llm_service") as mock_llm_service, \
-             patch("app.services.gemini_service.get_rate_limiter"):
-            
+        with patch("app.services.gemini_service.settings") as mock_settings, patch(
+            "app.services.gemini_service.get_llm_service"
+        ) as mock_llm_service, patch("app.services.gemini_service.get_rate_limiter"):
             mock_settings.llm_provider = "ollama"
-            
+
             mock_llm_instance = MagicMock()
-            mock_llm_instance.generate_content = AsyncMock(return_value={"response": "text response"})
+            mock_llm_instance.generate_content = AsyncMock(
+                return_value={"response": "text response"}
+            )
             mock_llm_service.return_value = mock_llm_instance
-            
+
             client = GeminiClient()
-            
+
             # Test with mixed multimodal content (lines 210-217)
             text_obj = MagicMock()
             text_obj.text = "extracted text"
-            
-            multimodal_prompt = [
-                "regular text",
-                text_obj,
-                "more text"
-            ]
-            
+
+            multimodal_prompt = ["regular text", text_obj, "more text"]
+
             await client._generate_content_async(multimodal_prompt)
-            
+
             # Verify text conversion logic was executed
             mock_llm_instance.generate_content.assert_called_once()
             call_args = mock_llm_instance.generate_content.call_args
@@ -658,82 +677,80 @@ class TestGeminiServiceCoverageMissingLines:
     @pytest.mark.asyncio
     async def test_generate_content_async_compatible_response(self):
         """Test CompatibleResponse class functionality (lines 225-244)."""
-        with patch("app.services.gemini_service.settings") as mock_settings, \
-             patch("app.services.gemini_service.get_llm_service") as mock_llm_service, \
-             patch("app.services.gemini_service.get_rate_limiter"):
-            
+        with patch("app.services.gemini_service.settings") as mock_settings, patch(
+            "app.services.gemini_service.get_llm_service"
+        ) as mock_llm_service, patch("app.services.gemini_service.get_rate_limiter"):
             mock_settings.llm_provider = "ollama"
-            
+
             mock_llm_instance = MagicMock()
             mock_llm_service.return_value = mock_llm_instance
-            
+
             client = GeminiClient()
-            
+
             # Test dict with "response" key (lines 227-229)
-            mock_llm_instance.generate_content = AsyncMock(return_value={
-                "response": "test response",
-                "usage": {"total_token_count": 150}
-            })
-            
+            mock_llm_instance.generate_content = AsyncMock(
+                return_value={"response": "test response", "usage": {"total_token_count": 150}}
+            )
+
             result = await client._generate_content_async("test")
-            
+
             assert result.text == "test response"
             assert result.usage_metadata.total_token_count == 150
 
     def test_get_token_count_from_response(self):
         """Test token count extraction (lines 249-256)."""
-        with patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter"):
-            
+        with patch("app.services.gemini_service.get_llm_service"), patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ):
             client = GeminiClient()
-            
+
             # Test response with usage_metadata (lines 252-253)
             response_with_metadata = MagicMock()
             response_with_metadata.usage_metadata.total_token_count = 500
             assert client._get_token_count_from_response(response_with_metadata) == 500
-            
+
             # Test response without usage_metadata (line 254)
             response_without_metadata = MagicMock()
             del response_without_metadata.usage_metadata
             assert client._get_token_count_from_response(response_without_metadata) == 0
-            
+
             # Test exception case (line 256)
-            with patch.object(client, '_get_token_count_from_response', side_effect=Exception):
+            with patch.object(client, "_get_token_count_from_response", side_effect=Exception):
                 assert client._get_token_count_from_response(None) == 0
 
     def test_parse_response_empty_response(self):
         """Test parsing empty response (lines 270-272)."""
-        with patch("app.services.gemini_service.settings") as mock_settings, \
-             patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter"):
-            
+        with patch("app.services.gemini_service.settings") as mock_settings, patch(
+            "app.services.gemini_service.get_llm_service"
+        ), patch("app.services.gemini_service.get_rate_limiter"):
             mock_settings.llm_model = "test-model"
-            
+
             client = GeminiClient()
-            
+
             # Test empty response (line 270)
             empty_response = MagicMock()
             empty_response.text = None
-            
+
             from app.core.exceptions import GeminiModelError
+
             with pytest.raises(GeminiModelError) as exc_info:
                 client._parse_response(empty_response)
-                
+
             assert "Empty response from Gemini API" in str(exc_info.value)
 
     def test_parse_response_json_decode_error(self):
         """Test JSON decode error handling (lines 279-301)."""
-        with patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter"):
-            
+        with patch("app.services.gemini_service.get_llm_service"), patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ):
             client = GeminiClient()
-            
+
             # Test invalid JSON (lines 279-282)
             response = MagicMock()
             response.text = "invalid json content"
-            
+
             result = client._parse_response(response)
-            
+
             # Should return raw response when JSON parsing fails (lines 304-308)
             assert result["raw_response"] == "invalid json content"
             assert "parse_error" in result
@@ -741,11 +758,11 @@ class TestGeminiServiceCoverageMissingLines:
 
     def test_parse_response_markdown_json_extraction(self):
         """Test JSON extraction from markdown (lines 289-301)."""
-        with patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter"):
-            
+        with patch("app.services.gemini_service.get_llm_service"), patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ):
             client = GeminiClient()
-            
+
             # Test markdown with valid JSON (lines 289-298)
             response = MagicMock()
             response.text = """
@@ -755,19 +772,19 @@ class TestGeminiServiceCoverageMissingLines:
             ```
             Some text after
             """
-            
+
             result = client._parse_response(response)
-            
+
             assert result["project_title"] == "Extracted Project"
             assert result["value"] == 1000
 
     def test_parse_response_markdown_json_decode_error(self):
         """Test markdown JSON decode error (lines 299-301)."""
-        with patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter"):
-            
+        with patch("app.services.gemini_service.get_llm_service"), patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ):
             client = GeminiClient()
-            
+
             # Test markdown with invalid JSON (lines 289-301)
             response = MagicMock()
             response.text = """
@@ -775,49 +792,49 @@ class TestGeminiServiceCoverageMissingLines:
             {invalid json content
             ```
             """
-            
+
             result = client._parse_response(response)
-            
+
             # Should return raw response when markdown JSON parsing fails
             assert result["raw_response"] == response.text.strip()
             assert result["extraction_success"] is False
 
     def test_parse_response_general_exception(self):
         """Test general exception in response parsing (lines 310-311)."""
-        with patch("app.services.gemini_service.settings") as mock_settings, \
-             patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter"):
-            
+        with patch("app.services.gemini_service.settings") as mock_settings, patch(
+            "app.services.gemini_service.get_llm_service"
+        ), patch("app.services.gemini_service.get_rate_limiter"):
             mock_settings.llm_model = "test-model"
-            
+
             client = GeminiClient()
-            
+
             # Force an exception during parsing
             response = MagicMock()
             response.text = '{"valid": "json"}'
-            
+
             with patch("json.loads", side_effect=Exception("Parsing error")):
                 from app.core.exceptions import GeminiModelError
+
                 with pytest.raises(GeminiModelError) as exc_info:
                     client._parse_response(response)
-                
+
                 assert "Failed to parse response: Parsing error" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_test_connection_health_check_failure(self):
         """Test connection test when health check fails (lines 325-332)."""
-        with patch("app.services.gemini_service.get_llm_service") as mock_llm_service, \
-             patch("app.services.gemini_service.get_rate_limiter"):
-            
+        with patch("app.services.gemini_service.get_llm_service") as mock_llm_service, patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ):
             mock_llm_instance = MagicMock()
             mock_llm_instance.health_check = AsyncMock(return_value=False)
             mock_llm_instance.get_provider_info.return_value = {"provider": "test"}
             mock_llm_service.return_value = mock_llm_instance
-            
+
             client = GeminiClient()
-            
+
             result = await client.test_connection()
-            
+
             assert result["status"] == "error"
             assert result["error"] == "Health check failed"
             assert result["provider"] == "test"
@@ -825,17 +842,17 @@ class TestGeminiServiceCoverageMissingLines:
     @pytest.mark.asyncio
     async def test_test_connection_exception(self):
         """Test connection test exception handling (lines 334-335)."""
-        with patch("app.services.gemini_service.get_llm_service") as mock_llm_service, \
-             patch("app.services.gemini_service.get_rate_limiter"):
-            
+        with patch("app.services.gemini_service.get_llm_service") as mock_llm_service, patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ):
             mock_llm_instance = MagicMock()
             mock_llm_instance.health_check = AsyncMock(side_effect=Exception("Connection failed"))
             mock_llm_service.return_value = mock_llm_instance
-            
+
             client = GeminiClient()
-            
+
             result = await client.test_connection()
-            
+
             assert result["status"] == "error"
             assert result["error"] == "Connection failed"
             assert result["error_type"] == "Exception"
@@ -843,162 +860,166 @@ class TestGeminiServiceCoverageMissingLines:
     @pytest.mark.asyncio
     async def test_process_multiple_documents_non_gemini_error(self):
         """Test multi-document processing with non-Gemini provider (lines 347-350)."""
-        with patch("app.services.gemini_service.settings") as mock_settings, \
-             patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter"):
-            
+        with patch("app.services.gemini_service.settings") as mock_settings, patch(
+            "app.services.gemini_service.get_llm_service"
+        ), patch("app.services.gemini_service.get_rate_limiter"):
             mock_settings.llm_provider = "ollama"  # Non-Gemini provider
-            
+
             client = GeminiClient()
-            
+
             documents = {"doc1.pdf": b"content1"}
             prompt = "Extract data"
-            
+
             with pytest.raises(ValueError) as exc_info:
                 await client.process_multiple_documents(documents, prompt)
-            
-            assert "Multi-document processing with File API only available for Gemini provider" in str(exc_info.value)
+
+            assert (
+                "Multi-document processing with File API only available for Gemini provider"
+                in str(exc_info.value)
+            )
             assert "current provider is ollama" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_process_multiple_documents_gemini_success(self):
         """Test successful multi-document processing with Gemini (lines 352-421)."""
-        with patch("app.services.gemini_service.settings") as mock_settings, \
-             patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter") as mock_rate_limiter, \
-             patch("app.services.gemini_service.genai_client") as mock_genai_client:
-            
+        with patch("app.services.gemini_service.settings") as mock_settings, patch(
+            "app.services.gemini_service.get_llm_service"
+        ), patch("app.services.gemini_service.get_rate_limiter") as mock_rate_limiter, patch(
+            "app.services.gemini_service.genai_client"
+        ) as mock_genai_client:
             mock_settings.llm_provider = "gemini"
             mock_settings.llm_model = "gemini-2.5-pro"
-            
+
             # Setup rate limiter
             mock_rate_limiter.return_value.wait_for_capacity = AsyncMock()
             mock_rate_limiter.return_value.record_token_usage = MagicMock()
-            
+
             # Setup file client
             mock_file_client = MagicMock()
             mock_genai_client.Client.return_value = mock_file_client
-            
+
             # Mock uploaded files
             mock_uploaded_file1 = MagicMock()
             mock_uploaded_file1.name = "file1_id"
             mock_uploaded_file2 = MagicMock()
             mock_uploaded_file2.name = "file2_id"
-            
+
             mock_file_client.files.upload.side_effect = [mock_uploaded_file1, mock_uploaded_file2]
             mock_file_client.files.delete = MagicMock()
-            
+
             # Mock successful API response
             mock_response = MagicMock()
             mock_response.text = '{"project_title": "Multi-doc Project"}'
             mock_response.usage_metadata.total_token_count = 2000
-            
+
             client = GeminiClient()
             client._file_client = mock_file_client
-            
+
             # Mock the async content generation
-            with patch.object(client, '_generate_multi_document_content_async', return_value=mock_response):
-                documents = {
-                    "doc1.pdf": b"content1",
-                    "doc2.txt": b"content2"
-                }
-                
+            with patch.object(
+                client, "_generate_multi_document_content_async", return_value=mock_response
+            ):
+                documents = {"doc1.pdf": b"content1", "doc2.txt": b"content2"}
+
                 result = await client.process_multiple_documents(documents, "Extract data")
-                
+
                 # Verify file uploads (lines 358-373)
                 assert mock_file_client.files.upload.call_count == 2
-                
+
                 # Verify API call was made (lines 392-395)
                 assert result["project_title"] == "Multi-doc Project"
                 assert result["_metadata"]["num_documents"] == 2
                 assert result["_metadata"]["uploaded_files"] == ["file1_id", "file2_id"]
-                
+
                 # Verify cleanup (lines 461-463)
                 assert mock_file_client.files.delete.call_count == 2
 
     @pytest.mark.asyncio
     async def test_process_multiple_documents_upload_error_cleanup(self):
         """Test cleanup when document upload fails (lines 458-465)."""
-        with patch("app.services.gemini_service.settings") as mock_settings, \
-             patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter") as mock_rate_limiter, \
-             patch("app.services.gemini_service.genai_client") as mock_genai_client:
-            
+        with patch("app.services.gemini_service.settings") as mock_settings, patch(
+            "app.services.gemini_service.get_llm_service"
+        ), patch("app.services.gemini_service.get_rate_limiter") as mock_rate_limiter, patch(
+            "app.services.gemini_service.genai_client"
+        ) as mock_genai_client:
             mock_settings.llm_provider = "gemini"
-            
+
             mock_rate_limiter.return_value.wait_for_capacity = AsyncMock()
-            
+
             # Setup file client
             mock_file_client = MagicMock()
             mock_genai_client.Client.return_value = mock_file_client
-            
+
             # Mock successful first upload, then failure
             mock_uploaded_file = MagicMock()
             mock_uploaded_file.name = "file1_id"
-            
+
             mock_file_client.files.upload.side_effect = [
                 mock_uploaded_file,
-                Exception("Upload failed")
+                Exception("Upload failed"),
             ]
-            
+
             client = GeminiClient()
             client._file_client = mock_file_client
-            
+
             documents = {"doc1.pdf": b"content1", "doc2.pdf": b"content2"}
-            
+
             with pytest.raises(Exception):
                 await client.process_multiple_documents(documents, "Extract")
-            
+
             # Verify cleanup was attempted even on failure (lines 460-465)
             mock_file_client.files.delete.assert_called_once_with(name="file1_id")
 
     def test_get_mime_type(self):
         """Test MIME type determination (lines 467-484)."""
-        with patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter"):
-            
+        with patch("app.services.gemini_service.get_llm_service"), patch(
+            "app.services.gemini_service.get_rate_limiter"
+        ):
             client = GeminiClient()
-            
+
             # Test known file types (lines 471-483)
             assert client._get_mime_type("document.pdf") == "application/pdf"
             assert client._get_mime_type("file.txt") == "text/plain"
             assert client._get_mime_type("image.jpg") == "image/jpeg"
             assert client._get_mime_type("image.png") == "image/png"
-            assert client._get_mime_type("doc.docx") == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            assert (
+                client._get_mime_type("doc.docx")
+                == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
             assert client._get_mime_type("page.html") == "text/html"
-            
+
             # Test unknown file type (line 484)
             assert client._get_mime_type("unknown.xyz") == "application/octet-stream"
-            
+
             # Test case insensitive (line 469)
             assert client._get_mime_type("IMAGE.JPEG") == "image/jpeg"
 
     @pytest.mark.asyncio
     async def test_generate_multi_document_content_async(self):
         """Test multi-document content generation (lines 486-498)."""
-        with patch("app.services.gemini_service.settings") as mock_settings, \
-             patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter"), \
-             patch("asyncio.get_event_loop") as mock_get_loop:
-            
+        with patch("app.services.gemini_service.settings") as mock_settings, patch(
+            "app.services.gemini_service.get_llm_service"
+        ), patch("app.services.gemini_service.get_rate_limiter"), patch(
+            "asyncio.get_event_loop"
+        ) as mock_get_loop:
             mock_settings.llm_model = "gemini-2.5-pro"
-            
+
             # Setup file client
             mock_file_client = MagicMock()
             mock_file_client.models.generate_content = MagicMock(return_value="mock_response")
-            
+
             client = GeminiClient()
             client._file_client = mock_file_client
-            
+
             # Setup async execution
             mock_loop = MagicMock()
             mock_get_loop.return_value = mock_loop
             mock_loop.run_in_executor.return_value = asyncio.Future()
             mock_loop.run_in_executor.return_value.set_result("mock_response")
-            
+
             contents = ["file1", "file2", "prompt"]
             result = await client._generate_multi_document_content_async(contents)
-            
+
             # Verify executor was called with correct lambda (lines 490-495)
             mock_loop.run_in_executor.assert_called_once()
             assert result == "mock_response"
@@ -1006,40 +1027,38 @@ class TestGeminiServiceCoverageMissingLines:
     @pytest.mark.asyncio
     async def test_generate_multi_document_content_async_error(self):
         """Test multi-document content generation error (lines 496-498)."""
-        with patch("app.services.gemini_service.settings") as mock_settings, \
-             patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter"):
-            
+        with patch("app.services.gemini_service.settings") as mock_settings, patch(
+            "app.services.gemini_service.get_llm_service"
+        ), patch("app.services.gemini_service.get_rate_limiter"):
             mock_settings.llm_model = "gemini-2.5-pro"
-            
+
             client = GeminiClient()
             client._file_client = None  # Force error
-            
+
             with pytest.raises(Exception) as exc_info:
                 await client._generate_multi_document_content_async(["content"])
-            
+
             # Exception should be re-raised (line 498)
             assert exc_info.value is not None
 
     def test_get_usage_stats(self):
         """Test usage statistics retrieval (lines 500-507)."""
-        with patch("app.services.gemini_service.settings") as mock_settings, \
-             patch("app.services.gemini_service.get_llm_service"), \
-             patch("app.services.gemini_service.get_rate_limiter") as mock_rate_limiter:
-            
+        with patch("app.services.gemini_service.settings") as mock_settings, patch(
+            "app.services.gemini_service.get_llm_service"
+        ), patch("app.services.gemini_service.get_rate_limiter") as mock_rate_limiter:
             mock_settings.llm_provider = "gemini"
             mock_settings.llm_model = "gemini-2.5-pro"
-            
+
             # Setup rate limiter mocks
             mock_limiter = MagicMock()
             mock_limiter.get_current_limits.return_value = {"requests": 100, "tokens": 50000}
             mock_limiter.get_stats.return_value = {"total_requests": 50}
             mock_rate_limiter.return_value = mock_limiter
-            
+
             client = GeminiClient()
-            
+
             stats = client.get_usage_stats()
-            
+
             # Verify all required fields are present (lines 502-507)
             assert "rate_limits" in stats
             assert stats["rate_limits"]["requests"] == 100

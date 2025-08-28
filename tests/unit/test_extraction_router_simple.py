@@ -14,12 +14,12 @@ from app.models.extraction import (
     ExtractionStatus,
 )
 from app.routers.extraction import (
-    extract_batch,
-    get_job_status,
     delete_job,
-    list_jobs,
     export_job_results,
+    extract_batch,
     get_extraction_statistics,
+    get_job_status,
+    list_jobs,
 )
 
 
@@ -33,6 +33,7 @@ def mock_job_manager():
 def sample_extraction_job():
     """Sample extraction job for testing."""
     from datetime import datetime
+
     job_id = str(uuid4())
     request = BatchExtractionRequest(
         documents=[
@@ -63,7 +64,7 @@ def completed_extraction_job():
         "submission_deadline": "2024-12-31T23:59:59Z",
     }
     from datetime import datetime
-    
+
     request = BatchExtractionRequest(
         documents=[
             DocumentExtractionRequest(
@@ -75,7 +76,7 @@ def completed_extraction_job():
         ],
         priority=0,
     )
-    
+
     return ExtractionJob(
         job_id=job_id,
         status=ExtractionStatus.COMPLETED,
@@ -101,13 +102,13 @@ class TestBatchExtractionFunction:
 
         # Create mock upload files
         from fastapi import UploadFile
-        
+
         mock_file = AsyncMock(spec=UploadFile)
         mock_file.filename = "test.pdf"
         mock_file.content_type = "application/pdf"
         mock_file.size = 1000
         mock_file.read.return_value = b"test content"
-        
+
         files = [mock_file]
 
         # Execute
@@ -119,7 +120,7 @@ class TestBatchExtractionFunction:
                     template_override=None,
                     enable_multimodal=True,
                     priority=0,
-                    job_manager=mock_job_manager
+                    job_manager=mock_job_manager,
                 )
 
         # Assert
@@ -138,7 +139,7 @@ class TestBatchExtractionFunction:
         mock_get_job_manager.return_value = mock_job_manager
 
         from fastapi import UploadFile
-        
+
         # Create multiple mock files
         files = []
         for i in range(5):
@@ -157,7 +158,7 @@ class TestBatchExtractionFunction:
                     template_override=None,
                     enable_multimodal=True,
                     priority=0,
-                    job_manager=mock_job_manager
+                    job_manager=mock_job_manager,
                 )
 
         # Assert
@@ -170,7 +171,9 @@ class TestJobStatusFunction:
 
     @patch("app.routers.extraction.get_job_manager")
     @pytest.mark.asyncio
-    async def test_get_job_status_success(self, mock_get_job_manager, mock_job_manager, sample_extraction_job):
+    async def test_get_job_status_success(
+        self, mock_get_job_manager, mock_job_manager, sample_extraction_job
+    ):
         """Test successful job status retrieval."""
         # Setup
         mock_get_job_manager.return_value = mock_job_manager
@@ -191,7 +194,9 @@ class TestJobStatusFunction:
         # Setup
         job_id = str(uuid4())
         mock_get_job_manager.return_value = mock_job_manager
-        mock_job_manager.get_job.side_effect = HTTPException(status_code=404, detail="Job not found")
+        mock_job_manager.get_job.side_effect = HTTPException(
+            status_code=404, detail="Job not found"
+        )
 
         # Execute & Assert
         with pytest.raises(HTTPException):
@@ -239,7 +244,9 @@ class TestJobListingFunction:
 
     @patch("app.routers.extraction.get_job_manager")
     @pytest.mark.asyncio
-    async def test_list_jobs_default(self, mock_get_job_manager, mock_job_manager, sample_extraction_job):
+    async def test_list_jobs_default(
+        self, mock_get_job_manager, mock_job_manager, sample_extraction_job
+    ):
         """Test job listing with default parameters."""
         # Setup
         mock_get_job_manager.return_value = mock_job_manager
@@ -253,9 +260,7 @@ class TestJobListingFunction:
         assert result[0].job_id == sample_extraction_job.job_id
 
         # Verify default parameters
-        mock_job_manager.list_jobs.assert_called_once_with(
-            limit=50, offset=0, status_filter=None
-        )
+        mock_job_manager.list_jobs.assert_called_once_with(limit=50, offset=0, status_filter=None)
 
     @patch("app.routers.extraction.get_job_manager")
     @pytest.mark.asyncio
@@ -267,10 +272,7 @@ class TestJobListingFunction:
 
         # Execute
         result = await list_jobs(
-            limit=10,
-            offset=20,
-            status=ExtractionStatus.COMPLETED,
-            job_manager=mock_job_manager
+            limit=10, offset=20, status=ExtractionStatus.COMPLETED, job_manager=mock_job_manager
         )
 
         # Assert
@@ -292,9 +294,7 @@ class TestJobListingFunction:
 
         # Assert
         # Limit should be capped at 100
-        mock_job_manager.list_jobs.assert_called_once_with(
-            limit=100, offset=0, status_filter=None
-        )
+        mock_job_manager.list_jobs.assert_called_once_with(limit=100, offset=0, status_filter=None)
 
 
 class TestJobExportFunction:
@@ -302,7 +302,9 @@ class TestJobExportFunction:
 
     @patch("app.routers.extraction.get_job_manager")
     @pytest.mark.asyncio
-    async def test_export_job_results_json(self, mock_get_job_manager, mock_job_manager, completed_extraction_job):
+    async def test_export_job_results_json(
+        self, mock_get_job_manager, mock_job_manager, completed_extraction_job
+    ):
         """Test exporting completed job results as JSON."""
         # Setup
         mock_get_job_manager.return_value = mock_job_manager
@@ -319,7 +321,9 @@ class TestJobExportFunction:
 
     @patch("app.routers.extraction.get_job_manager")
     @pytest.mark.asyncio
-    async def test_export_job_not_completed(self, mock_get_job_manager, mock_job_manager, sample_extraction_job):
+    async def test_export_job_not_completed(
+        self, mock_get_job_manager, mock_job_manager, sample_extraction_job
+    ):
         """Test exporting job that is not completed."""
         # Setup
         mock_get_job_manager.return_value = mock_job_manager
@@ -336,7 +340,9 @@ class TestJobExportFunction:
 
     @patch("app.routers.extraction.get_job_manager")
     @pytest.mark.asyncio
-    async def test_export_job_unsupported_format(self, mock_get_job_manager, mock_job_manager, completed_extraction_job):
+    async def test_export_job_unsupported_format(
+        self, mock_get_job_manager, mock_job_manager, completed_extraction_job
+    ):
         """Test exporting job with unsupported format."""
         # Setup
         mock_get_job_manager.return_value = mock_job_manager

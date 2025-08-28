@@ -233,12 +233,12 @@ class GeminiClient:
                         else:
                             self.text = str(text_content)
                             usage_data = {}
-                        
+
                         # Create a mock usage_metadata object that behaves like Gemini's
                         class UsageMetadata:
                             def __init__(self, usage_dict):
                                 self.total_token_count = usage_dict.get("total_token_count", 0)
-                        
+
                         self.usage_metadata = UsageMetadata(usage_data)
 
                 return CompatibleResponse(response)

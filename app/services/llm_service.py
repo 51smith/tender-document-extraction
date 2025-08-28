@@ -15,11 +15,11 @@ from google import generativeai as genai
 from app.config import settings
 from app.core.exceptions import (
     LLMError,
-    LLMQuotaExceededError, 
+    LLMQuotaExceededError,
     LLMRateLimitError,
     OllamaConnectionError,
     OpenAIConnectionError,
-    OpenAIRateLimitError
+    OpenAIRateLimitError,
 )
 from app.core.retry_config import get_retry_manager
 
@@ -61,7 +61,7 @@ class BaseLLMService(ABC):
             prompt,
             system_prompt,
             json_schema,
-            **kwargs
+            **kwargs,
         )
 
     @abstractmethod
@@ -78,11 +78,11 @@ class BaseLLMService(ABC):
     def get_provider_info(self) -> Dict[str, Any]:
         """Get detailed provider information including endpoint details."""
         pass
-    
+
     def get_circuit_status(self) -> Dict[str, Any]:
         """Get circuit breaker status for this provider."""
         return self.retry_manager.get_circuit_status(self.get_provider_name())
-    
+
     def reset_circuit_breaker(self):
         """Reset circuit breaker for this provider."""
         self.retry_manager.reset_circuit_breaker(self.get_provider_name())
@@ -175,7 +175,7 @@ class GeminiLLMService(BaseLLMService):
             "endpoint": "https://generativelanguage.googleapis.com",
             "endpoint_type": "cloud",
             "location": "Google Cloud",
-            "cost_model": "pay-per-token"
+            "cost_model": "pay-per-token",
         }
 
 
@@ -273,14 +273,14 @@ class OpenAILLMService(BaseLLMService):
             self.client.base_url if hasattr(self.client, "base_url") else "https://api.openai.com"
         )
         is_local = "localhost" in str(base_url) or "127.0.0.1" in str(base_url)
-        
+
         return {
             "provider": "openai",
             "model": self.model,
             "endpoint": str(base_url),
             "endpoint_type": "local" if is_local else "cloud",
             "location": "Local server" if is_local else "OpenAI Cloud",
-            "cost_model": "free" if is_local else "pay-per-token"
+            "cost_model": "free" if is_local else "pay-per-token",
         }
 
 
@@ -376,7 +376,7 @@ class OllamaLLMService(BaseLLMService):
 
     def get_provider_info(self) -> Dict[str, Any]:
         is_local = "localhost" in self.base_url or "127.0.0.1" in self.base_url
-        
+
         return {
             "provider": "ollama",
             "model": self.model,
@@ -384,7 +384,7 @@ class OllamaLLMService(BaseLLMService):
             "endpoint_type": "local" if is_local else "remote",
             "location": "Local machine" if is_local else f"Remote server ({self.base_url})",
             "cost_model": "free",
-            "timeout": f"{self.timeout}s"
+            "timeout": f"{self.timeout}s",
         }
 
 
