@@ -43,7 +43,8 @@
       "Bash(pip show:*)",
       "Bash(grep:*)",
       "WebFetch(domain:)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

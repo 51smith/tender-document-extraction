@@ -11,7 +11,7 @@ from app.config import settings
 from app.services.llm_service import LLMServiceFactory
 
 
-async def check_llm_backend(provider: str, model: str):
+async def test_llm_backend(provider: str, model: str):
     """Test a specific LLM backend."""
     print(f"\n🔍 Testing {provider} with model {model}")
     
@@ -69,18 +69,18 @@ async def main():
     results = {}
     
     # Test Ollama (local)
-    results["ollama"] = await check_llm_backend("ollama", "llama3:latest")
+    results["ollama"] = await test_llm_backend("ollama", "llama3:latest")
     
     # Test Gemini (if API key available)
     if settings.google_api_key:
-        results["gemini-pro"] = await check_llm_backend("gemini", "gemini-2.5-pro")
-        results["gemini-flash"] = await check_llm_backend("gemini", "gemini-1.5-flash")
+        results["gemini-pro"] = await test_llm_backend("gemini", "gemini-2.5-pro")
+        results["gemini-flash"] = await test_llm_backend("gemini", "gemini-1.5-flash")
     else:
         print("\n⚠️  Skipping Gemini tests (no API key)")
     
     # Test OpenAI (if API key available)  
     if hasattr(settings, 'openai_api_key') and settings.openai_api_key:
-        results["openai"] = await check_llm_backend("openai", "gpt-4o-mini")
+        results["openai"] = await test_llm_backend("openai", "gpt-4o-mini")
     else:
         print("\n⚠️  Skipping OpenAI tests (no API key)")
     

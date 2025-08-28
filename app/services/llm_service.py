@@ -46,6 +46,7 @@ class BaseLLMService(ABC):
         """Internal implementation of content generation (without retry logic)."""
         pass
 
+    @abstractmethod
     async def generate_content(
         self,
         prompt: str,
@@ -174,7 +175,7 @@ class GeminiLLMService(BaseLLMService):
             "endpoint": "https://generativelanguage.googleapis.com",
             "endpoint_type": "cloud",
             "location": "Google Cloud",
-            "cost_model": "pay-per-token",
+            "cost_model": "pay-per-token"
         }
 
 
@@ -272,14 +273,14 @@ class OpenAILLMService(BaseLLMService):
             self.client.base_url if hasattr(self.client, "base_url") else "https://api.openai.com"
         )
         is_local = "localhost" in str(base_url) or "127.0.0.1" in str(base_url)
-
+        
         return {
             "provider": "openai",
             "model": self.model,
             "endpoint": str(base_url),
             "endpoint_type": "local" if is_local else "cloud",
             "location": "Local server" if is_local else "OpenAI Cloud",
-            "cost_model": "free" if is_local else "pay-per-token",
+            "cost_model": "free" if is_local else "pay-per-token"
         }
 
 
@@ -375,7 +376,7 @@ class OllamaLLMService(BaseLLMService):
 
     def get_provider_info(self) -> Dict[str, Any]:
         is_local = "localhost" in self.base_url or "127.0.0.1" in self.base_url
-
+        
         return {
             "provider": "ollama",
             "model": self.model,
@@ -383,7 +384,7 @@ class OllamaLLMService(BaseLLMService):
             "endpoint_type": "local" if is_local else "remote",
             "location": "Local machine" if is_local else f"Remote server ({self.base_url})",
             "cost_model": "free",
-            "timeout": f"{self.timeout}s",
+            "timeout": f"{self.timeout}s"
         }
 
 
