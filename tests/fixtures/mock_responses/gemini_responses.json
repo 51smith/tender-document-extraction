@@ -1,0 +1,303 @@
+{
+  "successful_extraction": {
+    "extracted_data": {
+      "project_title": "Highway Construction Project A1",
+      "contracting_authority": {
+        "name": "Department of Transportation",
+        "contact_person": "John Smith",
+        "email": "j.smith@transport.gov",
+        "phone": "+1-555-0123"
+      },
+      "estimated_value": {
+        "amount": 5000000,
+        "currency": "EUR",
+        "vat_included": false
+      },
+      "contract_type": "works",
+      "submission_deadline": "2024-12-31T17:00:00Z",
+      "project_duration": {
+        "estimated_months": 18,
+        "start_date": "2025-02-01",
+        "end_date": "2026-07-31"
+      },
+      "cpv_codes": [
+        {
+          "code": "45233141",
+          "description": "Highway construction work"
+        }
+      ],
+      "evaluation_criteria": [
+        {
+          "criterion": "Price",
+          "weight_percentage": 40,
+          "description": "Total project cost including all expenses"
+        },
+        {
+          "criterion": "Technical Quality",
+          "weight_percentage": 35,
+          "description": "Technical approach and methodology"
+        },
+        {
+          "criterion": "Experience",
+          "weight_percentage": 25,
+          "description": "Previous experience in similar projects"
+        }
+      ],
+      "functional_requirements": [
+        {
+          "requirement": "ISO 9001 certification",
+          "mandatory": true,
+          "description": "Quality management system certification"
+        },
+        {
+          "requirement": "Minimum 10 years experience",
+          "mandatory": true,
+          "description": "Experience in highway construction projects"
+        },
+        {
+          "requirement": "Environmental compliance",
+          "mandatory": true,
+          "description": "Compliance with environmental regulations"
+        }
+      ]
+    },
+    "confidence_scores": {
+      "project_title": 0.95,
+      "contracting_authority": 0.90,
+      "estimated_value": 0.85,
+      "submission_deadline": 0.88,
+      "evaluation_criteria": 0.92,
+      "overall": 0.90
+    },
+    "extraction_notes": {
+      "ambiguities": [
+        "VAT inclusion status not clearly specified"
+      ],
+      "assumptions": [
+        "Assumed EUR currency based on context",
+        "Estimated project duration based on typical highway projects"
+      ],
+      "missing_information": [
+        "Specific technical requirements details",
+        "Bond requirements"
+      ],
+      "recommendations": [
+        "Clarify VAT inclusion in estimated value",
+        "Request detailed technical specifications"
+      ],
+      "processing_notes": [
+        "Document processed successfully with multimodal analysis",
+        "High confidence extraction due to clear document structure"
+      ]
+    },
+    "processing_metadata": {
+      "document_type": "application/pdf",
+      "page_count": 15,
+      "language": "en",
+      "extraction_complexity": "moderate",
+      "multimodal_content": true
+    },
+    "_metadata": {
+      "model": "gemini-2.5-pro",
+      "processing_time": 4.2,
+      "estimated_tokens": 2500,
+      "actual_tokens": 2350,
+      "timestamp": 1701234567.890
+    }
+  },
+
+  "simple_extraction": {
+    "extracted_data": {
+      "project_title": "Office Supplies Procurement",
+      "contracting_authority": {
+        "name": "City Council Procurement Office"
+      },
+      "estimated_value": {
+        "amount": 50000,
+        "currency": "USD"
+      },
+      "contract_type": "supplies"
+    },
+    "confidence_scores": {
+      "project_title": 0.92,
+      "contracting_authority": 0.88,
+      "estimated_value": 0.85,
+      "overall": 0.88
+    },
+    "extraction_notes": {
+      "ambiguities": [],
+      "assumptions": [],
+      "missing_information": [],
+      "recommendations": [],
+      "processing_notes": ["Simple document structure with clear information"]
+    },
+    "_metadata": {
+      "model": "gemini-2.5-pro",
+      "processing_time": 1.5,
+      "actual_tokens": 800,
+      "timestamp": 1701234567.890
+    }
+  },
+
+  "complex_extraction": {
+    "extracted_data": {
+      "project_title": "Integrated Smart City Infrastructure Development",
+      "contracting_authority": {
+        "name": "Metropolitan Development Authority",
+        "contact_person": "Sarah Johnson",
+        "email": "s.johnson@metro-dev.gov",
+        "phone": "+1-555-0199",
+        "address": "123 Government Plaza, Metro City, MC 12345"
+      },
+      "estimated_value": {
+        "amount": 25000000,
+        "currency": "USD",
+        "vat_included": false
+      },
+      "contract_type": "works",
+      "submission_deadline": "2024-09-15T15:00:00Z",
+      "project_duration": {
+        "estimated_months": 36,
+        "start_date": "2024-12-01",
+        "end_date": "2027-11-30"
+      },
+      "cpv_codes": [
+        {
+          "code": "72000000",
+          "description": "IT services: consulting, software development and Internet services"
+        },
+        {
+          "code": "45316000",
+          "description": "Electrical installation work"
+        },
+        {
+          "code": "45231300",
+          "description": "Construction work for pipelines, communication and power lines"
+        }
+      ],
+      "evaluation_criteria": [
+        {
+          "criterion": "Technical Merit",
+          "weight_percentage": 45,
+          "description": "Innovation, technical approach, and solution architecture"
+        },
+        {
+          "criterion": "Price",
+          "weight_percentage": 30,
+          "description": "Total cost of ownership over 10-year period"
+        },
+        {
+          "criterion": "Implementation Timeline",
+          "weight_percentage": 15,
+          "description": "Project delivery schedule and milestones"
+        },
+        {
+          "criterion": "Team Qualifications",
+          "weight_percentage": 10,
+          "description": "Experience and certifications of project team"
+        }
+      ],
+      "functional_requirements": [
+        {
+          "requirement": "Smart traffic management system",
+          "mandatory": true,
+          "description": "AI-powered traffic optimization with real-time monitoring"
+        },
+        {
+          "requirement": "IoT sensor network deployment",
+          "mandatory": true,
+          "description": "City-wide sensor network for environmental and traffic monitoring"
+        },
+        {
+          "requirement": "Citizen mobile application",
+          "mandatory": false,
+          "description": "Mobile app for citizen services and city information"
+        },
+        {
+          "requirement": "Data analytics platform",
+          "mandatory": true,
+          "description": "Big data platform for city operations analytics"
+        }
+      ]
+    },
+    "confidence_scores": {
+      "project_title": 0.98,
+      "contracting_authority": 0.95,
+      "estimated_value": 0.92,
+      "submission_deadline": 0.96,
+      "evaluation_criteria": 0.94,
+      "functional_requirements": 0.89,
+      "overall": 0.94
+    },
+    "extraction_notes": {
+      "ambiguities": [
+        "Multiple sub-projects with varying requirements",
+        "Some technical specifications require clarification"
+      ],
+      "assumptions": [
+        "Assumed 10-year operational period for cost calculation",
+        "Standard smart city technology stack assumed"
+      ],
+      "missing_information": [
+        "Specific technology platform preferences",
+        "Integration requirements with existing systems",
+        "Maintenance and support requirements"
+      ],
+      "recommendations": [
+        "Request detailed technical architecture requirements",
+        "Clarify integration points with existing city systems",
+        "Define specific performance metrics and SLAs"
+      ],
+      "processing_notes": [
+        "Complex multi-section document with technical appendices",
+        "Cross-referenced multiple document sections for complete extraction",
+        "High-confidence extraction despite document complexity"
+      ]
+    },
+    "processing_metadata": {
+      "document_type": "application/pdf",
+      "page_count": 87,
+      "language": "en",
+      "extraction_complexity": "high",
+      "multimodal_content": true,
+      "technical_diagrams": 12,
+      "tables_processed": 8
+    },
+    "_metadata": {
+      "model": "gemini-2.5-pro",
+      "processing_time": 15.8,
+      "estimated_tokens": 8500,
+      "actual_tokens": 8234,
+      "timestamp": 1701234567.890
+    }
+  },
+
+  "error_responses": {
+    "malformed_json": {
+      "error": "Invalid JSON response from AI model",
+      "type": "parsing_error",
+      "raw_response": "Here is the extracted information: {\"project_title\": \"Test\", invalid json structure...",
+      "timestamp": 1701234567.890
+    },
+    "quota_exceeded": {
+      "error": "API quota exceeded",
+      "type": "quota_error",
+      "details": "Daily request limit reached",
+      "retry_after": 86400,
+      "timestamp": 1701234567.890
+    },
+    "rate_limited": {
+      "error": "Rate limit exceeded",
+      "type": "rate_limit_error",
+      "details": "Too many requests per minute",
+      "retry_after": 60,
+      "timestamp": 1701234567.890
+    },
+    "model_error": {
+      "error": "Model processing error",
+      "type": "model_error",
+      "details": "Content blocked by safety filters",
+      "timestamp": 1701234567.890
+    }
+  }
+}

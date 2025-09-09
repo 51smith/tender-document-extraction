@@ -1,0 +1,179 @@
+<<<<<<< HEAD
+=======
+version: '3.8'
+
+>>>>>>> origin/main
+services:
+  # Redis for testing - isolated database
+  redis-test:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    command: redis-server --port 6379 --databases 16
+    tmpfs:
+      - /data:noexec,nosuid,size=100m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Test application server
+  app-test:
+    build:
+      context: .
+      target: development
+    ports:
+      - "8001:8000"
+    environment:
+      - REDIS_URL=redis://redis-test:6379/1
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+      - SECRET_KEY=test-secret-key-for-testing-purposes-minimum-32-characters-long
+      - LLM_PROVIDER=ollama
+      - LLM_MODEL=llama3:latest
+      - OLLAMA_BASE_URL=http://mock-ollama:11434
+      - MAX_FILE_SIZE=10485760
+      - ENABLE_USAGE_TRACKING=false
+    depends_on:
+      redis-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    command: >
+      sh -c "
+        echo 'Waiting for dependencies...' &&
+        python -c 'import redis; r = redis.Redis(host=\"redis-test\", port=6379, db=1); r.ping(); print(\"Redis connected\")' &&
+        echo 'Starting test server...' &&
+        uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+      "
+
+  # Mock LLM provider service for Gemini
+  mock-gemini:
+    image: python:3.11-slim
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./tests/integration/mocks:/app/mocks
+    working_dir: /app
+    command: >
+      sh -c "
+        pip install fastapi uvicorn &&
+        python mocks/gemini_mock_server.py
+      "
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # Mock LLM provider service for OpenAI
+  mock-openai:
+    image: python:3.11-slim
+    ports:
+      - "8003:8000"
+    volumes:
+      - ./tests/integration/mocks:/app/mocks
+    working_dir: /app
+    command: >
+      sh -c "
+        pip install fastapi uvicorn &&
+        python mocks/openai_mock_server.py
+      "
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # Mock LLM provider service for Ollama
+  mock-ollama:
+    image: python:3.11-slim
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./tests/integration/mocks:/app/mocks
+    working_dir: /app
+    command: >
+      sh -c "
+        pip install fastapi uvicorn &&
+        python mocks/ollama_mock_server.py
+      "
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:11434/api/tags')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # Test runner service
+  test-runner:
+    build:
+      context: .
+      target: development
+    environment:
+      - REDIS_URL=redis://redis-test:6379/2
+      - ENVIRONMENT=development
+      - SECRET_KEY=test-secret-key-for-testing-purposes-minimum-32-characters-long
+      - TEST_SERVER_URL=http://app-test:8000
+      - MOCK_GEMINI_URL=http://mock-gemini:8000
+      - MOCK_OPENAI_URL=http://mock-openai:8000
+      - MOCK_OLLAMA_URL=http://mock-ollama:11434
+    volumes:
+      - ./tests:/app/tests
+      - ./app:/app/app
+      - ./coverage_reports:/app/coverage_reports
+    depends_on:
+      redis-test:
+        condition: service_healthy
+      app-test:
+        condition: service_healthy
+      mock-gemini:
+        condition: service_healthy
+      mock-openai:
+        condition: service_healthy
+      mock-ollama:
+        condition: service_healthy
+    profiles:
+      - testing
+    command: >
+      sh -c "
+        echo 'Running integration tests...' &&
+        pytest tests/integration/ -v --tb=short --cov=app --cov-report=html:coverage_reports/integration &&
+        echo 'Integration tests completed'
+      "
+
+  # Performance testing with Locust
+  load-tester:
+    image: locustio/locust
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./tests/performance:/mnt/locust
+    environment:
+      - LOCUST_HOST=http://app-test:8000
+    depends_on:
+      app-test:
+        condition: service_healthy
+    profiles:
+      - performance
+    command: >
+      -f /mnt/locust/locustfile.py
+      --web-host=0.0.0.0
+      --headless
+      --users=10
+      --spawn-rate=2
+      --run-time=60s
+      --html=/mnt/locust/reports/load_test_report.html
+
+networks:
+  default:
+    name: tender-extract-test-network
+
+volumes:
+  test_coverage:
+    driver: local

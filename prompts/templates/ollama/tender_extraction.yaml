@@ -1,0 +1,197 @@
+# Ollama-optimized template for tender document extraction
+# Designed for simpler, more direct responses with flatter data structure
+
+inherits: base
+
+task_description: |
+  Extract tender information from the procurement document. Use the exact field names and structure shown in the schema. Keep responses simple and direct.
+
+schema_definition: |
+  {
+    "project_title": "string - Project name",
+    "estimated_value": {
+      "amount": "number - Numeric value",
+      "currency": "string - Currency code (EUR, USD)",
+      "value_type": "string - total, annual, hourly, or daily",
+      "vat_included": "boolean - true or false"
+    },
+    "contracting_authority": {
+      "name": "string - Organization name",
+      "email": "string - Contact email",
+      "address": {
+        "city": "string - City name",
+        "country": "string - Country name"
+      }
+    },
+    "submission_deadline": "string - Date in YYYY-MM-DDTHH:MM:SSZ format",
+    "evaluation_criteria": [
+      {
+        "criterion": "string - Criterion name",
+        "weight_percentage": "number - Percentage (0-100)",
+        "description": "string - Brief description"
+      }
+    ],
+    "contract_type": "string - supply, service, works, or mixed",
+    "functional_requirements": ["string - Requirements list"],
+    "technical_requirements": ["string - Technical specs list"],
+    "cpv_codes": ["string - CPV codes"],
+    "procurement_phases": [
+      {
+        "phase": "string - Phase name",
+        "title": "string - Phase title",
+        "description": "string - Phase description",
+        "deadline": "string - Phase deadline"
+      }
+    ],
+    "complaint_procedure": {
+      "description": "string - Complaint process description",
+      "deadline": "string - Complaint deadline",
+      "method": "string - How to submit complaints",
+      "contact_info": "string - Contact for complaints",
+      "authority": "string - Complaint handling authority"
+    },
+    "document_structure": [
+      {
+        "title": "string - Document title",
+        "description": "string - Document description",
+        "document_type": "string - Type of document",
+        "section": "string - Document section"
+      }
+    ],
+    "exclusion_grounds": ["string - Exclusion criteria"],
+    "selection_criteria": ["string - Selection requirements"],
+    "application_conditions": ["string - Application conditions"],
+    "confidence_scores": {
+      "project_title": "number 0-1",
+      "estimated_value": "number 0-1",
+      "contracting_authority": "number 0-1",
+      "submission_deadline": "number 0-1",
+      "evaluation_criteria": "number 0-1",
+      "overall": "number 0-1"
+    },
+    "extraction_notes": {
+      "ambiguities": ["string - Unclear items"],
+      "assumptions": ["string - Assumptions made"],
+      "missing_information": ["string - Missing data"],
+      "recommendations": ["string - Suggestions"]
+    },
+    "processing_metadata": {
+      "processing_time": "number - Seconds taken",
+      "extraction_complexity": "string - simple, moderate, or complex",
+      "language": "string - Document language",
+      "total_pages": "number - Page count"
+    }
+  }
+
+extraction_priorities: |
+  FOCUS ON THESE ESSENTIAL FIELDS:
+  1. project_title - Clear project name
+  2. estimated_value.amount and currency
+  3. contracting_authority.name
+  4. submission_deadline
+  5. evaluation_criteria with criterion names and weights
+
+  DUTCH TENDER SPECIFIC FIELDS (high priority for NPO documents):
+  - procurement_phases - Extract all process phases with deadlines
+  - complaint_procedure - Dutch complaint process details
+  - exclusion_grounds - Exclusion criteria for applicants
+  - selection_criteria - Selection requirements
+
+  SECONDARY FIELDS (if clearly visible):
+  - functional_requirements
+  - technical_requirements
+  - contract_type
+  - cpv_codes
+  - document_structure - Document organization info
+  - application_conditions
+
+ollama_specific_instructions: |
+  IMPORTANT FOR OLLAMA:
+  - Use simple, flat data structures when possible
+  - Avoid deeply nested objects unless required
+  - Be precise with field names - use exactly "criterion" not "name"
+  - Convert weight decimals (0.45) to percentages (45.0)
+  - Keep descriptions brief but informative
+  - Focus on clearly stated information over inference
+
+field_extraction_hints: |
+  PROJECT TITLE: Look for main heading, document title, or "Subject" field
+
+  ESTIMATED VALUE:
+  - Find budget, cost, or value mentions
+  - Extract numeric amount only for "amount" field
+  - Include 3-letter currency code (EUR, USD, etc.)
+
+  DEADLINE: Convert to YYYY-MM-DDTHH:MM:SSZ format (add T00:00:00Z if time not specified)
+
+  EVALUATION CRITERIA:
+  - Look for scoring sections, evaluation methodology
+  - Use "criterion" field for names like "Technical Quality", "Price"
+  - Convert weights: 0.45 becomes 45.0, 45% stays 45.0
+
+  CONTRACTING AUTHORITY: Extract organization name and contact details
+
+  PROCUREMENT PHASES:
+  - Look for process steps, phases, or timeline sections
+  - Extract phase names like "Selection Phase", "Award Phase"
+  - Include descriptions and deadlines for each phase
+
+  COMPLAINT PROCEDURE:
+  - Find complaint process, legal remedies, or appeal procedures
+  - Extract complaint deadlines (e.g., "within 10 days")
+  - Include submission methods and contact information
+
+  EXCLUSION GROUNDS:
+  - Look for exclusion criteria, disqualification reasons
+  - Include financial, legal, or technical exclusions
+
+  SELECTION CRITERIA:
+  - Find minimum requirements, qualification criteria
+  - Include technical capabilities, experience requirements
+
+  DOCUMENT STRUCTURE:
+  - Extract document titles, sections, and descriptions
+  - Identify document types (tender documents, specifications, etc.)
+
+  APPLICATION CONDITIONS:
+  - Look for application requirements, submission conditions
+  - Include formatting, language, and procedural requirements
+
+validation_rules: |
+  - estimated_value.amount must be positive number
+  - evaluation criteria weights should be percentages (0-100)
+  - submission_deadline must include date
+  - Use exact field names: "criterion" not "name", "weight_percentage" not "weight"
+  - confidence_scores must be between 0.0 and 1.0
+
+response_format_example: |
+  Example response structure:
+  {
+    "project_title": "Highway Construction Project A1",
+    "estimated_value": {
+      "amount": 2500000,
+      "currency": "EUR",
+      "value_type": "total",
+      "vat_included": true
+    },
+    "contracting_authority": {
+      "name": "Ministry of Transportation",
+      "email": "tenders@transport.gov",
+      "address": {
+        "city": "Brussels",
+        "country": "Belgium"
+      }
+    },
+    "evaluation_criteria": [
+      {
+        "criterion": "Technical Solution",
+        "weight_percentage": 60.0,
+        "description": "Quality of proposed approach"
+      },
+      {
+        "criterion": "Price Competitiveness",
+        "weight_percentage": 40.0,
+        "description": "Best value assessment"
+      }
+    ]
+  }

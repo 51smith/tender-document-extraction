@@ -1,0 +1,203 @@
+# Gemini-optimized template for comprehensive tender document extraction
+# Leverages Gemini's advanced reasoning and multimodal capabilities
+
+inherits: base
+
+task_description: |
+  Perform comprehensive tender document analysis using advanced reasoning and multimodal understanding. Extract all relevant information with detailed context analysis and provide sophisticated insights into procurement requirements.
+
+schema_definition: |
+  {
+    "extracted_data": {
+      "project_title": "string - Complete project name with context",
+      "contracting_authority": {
+        "name": "string - Full legal organization name",
+        "address": {
+          "street": "string - Street address",
+          "city": "string - City name",
+          "postal_code": "string - Postal/ZIP code",
+          "country": "string - Country name"
+        },
+        "contact_person": "string - Primary contact name",
+        "email": "string - Valid email address",
+        "phone": "string - Phone number with country code",
+        "website": "string - Official website URL",
+        "registration_number": "string - Official registration ID"
+      },
+      "estimated_value": {
+        "amount": "number - Precise numeric value",
+        "currency": "string - ISO 4217 currency code",
+        "value_type": "enum - total|annual|hourly|daily",
+        "vat_included": "boolean - VAT inclusion status"
+      },
+      "submission_deadline": "string - ISO 8601 datetime with timezone",
+      "project_duration": "string - Detailed duration specification",
+      "contract_start_date": "string - Expected start date (ISO 8601)",
+      "evaluation_criteria": [
+        {
+          "criterion": "string - Detailed criterion name",
+          "weight_percentage": "number - Precise percentage (0-100)",
+          "description": "string - Comprehensive description",
+          "sub_criteria": [
+            {
+              "criterion": "string - Sub-criterion name",
+              "weight_percentage": "number - Sub-weight if applicable"
+            }
+          ]
+        }
+      ],
+      "functional_requirements": ["string - Detailed functional specifications"],
+      "technical_requirements": ["string - Comprehensive technical specs"],
+      "eligibility_criteria": ["string - Detailed qualification requirements"],
+      "knockout_criteria": ["string - Mandatory exclusion criteria"],
+      "contract_type": "enum - supply|service|works|mixed",
+      "cpv_codes": ["string - All relevant CPV codes with descriptions"],
+      "procurement_procedure": "string - Detailed procedure description",
+      "lot_structure": {
+        "is_divided": "boolean - Lot division status",
+        "lots": [
+          {
+            "lot_number": "string - Lot identifier",
+            "title": "string - Lot title",
+            "description": "string - Comprehensive lot description",
+            "estimated_value": {
+              "amount": "number",
+              "currency": "string",
+              "value_type": "string",
+              "vat_included": "boolean"
+            },
+            "cpv_codes": ["string - Lot-specific CPV codes"]
+          }
+        ],
+        "can_bid_multiple_lots": "boolean - Multiple lot bidding allowed",
+        "max_lots_per_bidder": "number - Maximum lots per bidder"
+      },
+      "submission_requirements": {
+        "language": "string - Required language(s)",
+        "format": "string - Submission format requirements",
+        "documents_required": ["string - Comprehensive document list"],
+        "submission_method": "string - How to submit",
+        "submission_platform": "string - Platform details if electronic"
+      },
+      "special_conditions": ["string - All special terms and conditions"],
+      "reference_number": "string - Tender reference number",
+      "publication_date": "string - Document publication date"
+    }
+  }
+
+extraction_priorities: |
+  CRITICAL ANALYSIS AREAS for Gemini:
+
+  TIER 1 - MANDATORY EXTRACTION:
+  - project_title with full context and scope
+  - contracting_authority complete details
+  - estimated_value with all financial aspects
+  - submission_deadline with timezone accuracy
+  - evaluation_criteria with weights and sub-criteria
+  - contract_type with classification reasoning
+
+  TIER 2 - ADVANCED ANALYSIS:
+  - Multi-level requirement analysis (functional/technical/eligibility)
+  - Complex lot structure with inter-dependencies
+  - Comprehensive submission requirements
+  - Risk assessment through knockout criteria
+
+  TIER 3 - CONTEXTUAL ENRICHMENT:
+  - Implicit requirements derived from context
+  - Industry-specific compliance requirements
+  - Cross-reference validation between sections
+  - Strategic insights for bid preparation
+
+gemini_specific_instructions: |
+  LEVERAGE GEMINI'S ADVANCED CAPABILITIES:
+
+  MULTIMODAL ANALYSIS:
+  - Analyze tables, charts, and diagrams in detail
+  - Extract information from complex layouts and formatting
+  - Identify implicit requirements from visual cues
+  - Process technical drawings and specifications
+
+  CONTEXTUAL REASONING:
+  - Cross-reference information across document sections
+  - Identify contradictions or inconsistencies
+  - Infer missing details from context and standards
+  - Apply domain expertise in procurement analysis
+
+  COMPREHENSIVE UNDERSTANDING:
+  - Understand industry-specific terminology
+  - Recognize standard procurement procedures
+  - Identify compliance requirements (EU, local, sector)
+  - Assess complexity levels and risk factors
+
+field_extraction_hints: |
+  PROJECT TITLE ANALYSIS:
+  - Extract complete project scope including phases
+  - Identify key deliverables and objectives
+  - Note any consortium or partnership requirements
+
+  FINANCIAL ANALYSIS:
+  - Identify all cost components (base, options, variations)
+  - Determine VAT treatment and tax implications
+  - Note any multi-year budget distributions
+  - Assess price adjustment mechanisms
+
+  DEADLINE MANAGEMENT:
+  - Extract all relevant dates with dependencies
+  - Note any pre-qualification or expression of interest deadlines
+  - Identify clarification periods and procedures
+
+  EVALUATION SOPHISTICATION:
+  - Capture multi-level scoring methodologies
+  - Identify qualitative and quantitative criteria
+  - Note any MEAT (Most Economically Advantageous Tender) approaches
+  - Extract pass/fail thresholds and minimum scores
+
+  REQUIREMENT CLASSIFICATION:
+  - Distinguish between mandatory and preferred requirements
+  - Identify performance specifications vs. technical specifications
+  - Note any innovative or sustainability requirements
+  - Extract accessibility and social responsibility criteria
+
+advanced_validation_rules: |
+  GEMINI-SPECIFIC VALIDATION:
+  - Cross-validate financial figures across document sections
+  - Ensure evaluation criteria weights are mathematically consistent
+  - Verify deadline sequences are logical and achievable
+  - Check compliance with standard procurement regulations
+  - Validate contact information format and completeness
+  - Ensure CPV codes align with project scope and requirements
+  - Confirm lot structures are coherent and complete
+
+contextual_analysis_prompts: |
+  ADDITIONAL ANALYSIS TASKS:
+
+  1. COMPLIANCE ASSESSMENT:
+  - Identify applicable regulatory frameworks
+  - Note any sector-specific requirements
+  - Flag potential compliance risks or gaps
+
+  2. STRATEGIC INSIGHTS:
+  - Assess competitive landscape indicators
+  - Identify key differentiators for success
+  - Note any preferred supplier indicators
+
+  3. RISK ANALYSIS:
+  - Identify technical delivery risks
+  - Note financial or commercial risks
+  - Flag any unusual terms or conditions
+
+  4. OPPORTUNITY ASSESSMENT:
+  - Evaluate project attractiveness factors
+  - Identify partnership or subcontracting opportunities
+  - Note any innovation or sustainability preferences
+
+confidence_scoring_enhanced: |
+  ADVANCED CONFIDENCE SCORING for Gemini:
+  - 0.95-1.0: Explicitly stated with cross-validation
+  - 0.85-0.94: Clear statement with supporting context
+  - 0.75-0.84: Derived from multiple consistent sources
+  - 0.65-0.74: Standard interpretation with good context
+  - 0.50-0.64: Reasonable inference from available data
+  - 0.35-0.49: Educated assessment based on limited information
+  - 0.20-0.34: Speculative based on industry standards
+  - 0.00-0.19: Missing or highly uncertain information

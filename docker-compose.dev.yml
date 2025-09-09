@@ -1,0 +1,91 @@
+<<<<<<< HEAD
+=======
+version: '3.8'
+
+>>>>>>> origin/main
+services:
+  # Redis for job queue and caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Main application (development mode)
+  app:
+    build:
+      context: .
+      target: development
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=development
+      - DEBUG=true
+      # Ollama configuration for connecting to host
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - LLM_PROVIDER=ollama
+      - LLM_MODEL=llama3:latest
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      # Mount source code for hot reload
+      - ./app:/app/app:ro
+      - ./tests:/app/tests:ro
+      - ./prompts:/app/prompts:ro
+      - ./logs:/app/logs
+      # Mount Python files for development
+      - ./main.py:/app/main.py:ro
+      - ./run_dev.py:/app/run_dev.py:ro
+      # Mount .env file
+      - ./.env:/app/.env:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Enable access to host network for Ollama
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Worker for background jobs (development mode)
+  worker:
+    build:
+      context: .
+      target: development
+    command: python start_worker.py
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=development
+      # Ollama configuration for worker
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - LLM_PROVIDER=ollama
+      - LLM_MODEL=llama3:latest
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app:ro
+      - ./prompts:/app/prompts:ro
+      - ./logs:/app/logs
+      # Mount .env file for worker
+      - ./.env:/app/.env:ro
+    # Enable access to host network for Ollama
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  redis_data:

@@ -1,0 +1,228 @@
+# OpenAI-optimized template for structured tender document extraction
+# Leverages OpenAI's structured output and reasoning capabilities
+
+inherits: base
+
+task_description: |
+  Extract comprehensive tender information using systematic analysis and structured reasoning. Apply chain-of-thought processing to ensure accuracy and completeness while maintaining strict JSON schema compliance.
+
+schema_definition: |
+  {
+    "extracted_data": {
+      "project_title": "string - Clear, descriptive project name",
+      "contracting_authority": {
+        "name": "string - Official organization name",
+        "address": {
+          "street": "string - Street address if available",
+          "city": "string - City name",
+          "postal_code": "string - Postal code",
+          "country": "string - Country name"
+        },
+        "contact_person": "string - Contact person name",
+        "email": "string - Valid email address",
+        "phone": "string - Contact phone number",
+        "website": "string - Official website",
+        "registration_number": "string - Official registration number"
+      },
+      "estimated_value": {
+        "amount": "number - Numeric value without currency symbols",
+        "currency": "string - ISO currency code (EUR, USD, etc.)",
+        "value_type": "string - total, annual, hourly, or daily",
+        "vat_included": "boolean - VAT inclusion status"
+      },
+      "submission_deadline": "string - ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ",
+      "project_duration": "string - Project timeline description",
+      "contract_start_date": "string - Expected start date (ISO 8601)",
+      "evaluation_criteria": [
+        {
+          "criterion": "string - Evaluation criterion name",
+          "weight_percentage": "number - Percentage weight (0-100)",
+          "description": "string - Criterion description",
+          "sub_criteria": [
+            {
+              "criterion": "string - Sub-criterion name",
+              "weight_percentage": "number - Sub-weight if specified"
+            }
+          ]
+        }
+      ],
+      "functional_requirements": ["string - List of functional requirements"],
+      "technical_requirements": ["string - List of technical specifications"],
+      "eligibility_criteria": ["string - Bidder qualification requirements"],
+      "knockout_criteria": ["string - Mandatory exclusion criteria"],
+      "contract_type": "string - supply, service, works, or mixed",
+      "cpv_codes": ["string - Common Procurement Vocabulary codes"],
+      "procurement_procedure": "string - Procurement procedure type",
+      "lot_structure": {
+        "is_divided": "boolean - Whether divided into lots",
+        "lots": [
+          {
+            "lot_number": "string - Lot identifier",
+            "title": "string - Lot title",
+            "description": "string - Lot description",
+            "estimated_value": {
+              "amount": "number",
+              "currency": "string",
+              "value_type": "string",
+              "vat_included": "boolean"
+            },
+            "cpv_codes": ["string - Lot-specific CPV codes"]
+          }
+        ],
+        "can_bid_multiple_lots": "boolean - Multiple lot bidding allowed",
+        "max_lots_per_bidder": "number - Maximum lots per bidder if specified"
+      },
+      "submission_requirements": {
+        "language": "string - Required language(s)",
+        "format": "string - Submission format (electronic, paper, etc.)",
+        "documents_required": ["string - Required documents list"],
+        "submission_method": "string - Submission method",
+        "submission_platform": "string - Platform name if electronic"
+      },
+      "special_conditions": ["string - Special terms and conditions"],
+      "reference_number": "string - Tender reference number",
+      "publication_date": "string - Document publication date (ISO 8601)"
+    }
+  }
+
+extraction_priorities: |
+  SYSTEMATIC EXTRACTION APPROACH for OpenAI:
+
+  PHASE 1 - CORE IDENTIFICATION:
+  1. Document overview and structure recognition
+  2. Primary project identification (title, scope)
+  3. Contracting authority identification
+  4. Key dates and deadlines
+  5. Financial framework (budget, value)
+
+  PHASE 2 - REQUIREMENT ANALYSIS:
+  1. Evaluation methodology and criteria
+  2. Functional and technical requirements
+  3. Eligibility and qualification criteria
+  4. Submission requirements and procedures
+
+  PHASE 3 - STRUCTURAL DETAILS:
+  1. Lot structure and organization
+  2. Special conditions and terms
+  3. Administrative details (references, codes)
+  4. Compliance and regulatory aspects
+
+openai_specific_instructions: |
+  OPTIMIZE FOR OPENAI'S STRENGTHS:
+
+  STRUCTURED REASONING:
+  - Use systematic analysis approach for each section
+  - Apply logical validation of extracted information
+  - Cross-reference related data points for consistency
+  - Employ step-by-step verification process
+
+  JSON SCHEMA COMPLIANCE:
+  - Ensure strict adherence to defined data types
+  - Validate all required fields are populated
+  - Apply proper formatting for dates, numbers, booleans
+  - Maintain consistent field naming conventions
+
+  CHAIN-OF-THOUGHT PROCESSING:
+  - Document reasoning process for complex extractions
+  - Show how conclusions are derived from source material
+  - Identify assumptions and confidence levels
+  - Provide clear rationale for ambiguous interpretations
+
+reasoning_framework: |
+  ANALYTICAL APPROACH:
+
+  1. DOCUMENT STRUCTURE ANALYSIS:
+  - Identify document type and format
+  - Map section organization and hierarchy
+  - Locate key information areas
+  - Note any missing or incomplete sections
+
+  2. INFORMATION EXTRACTION LOGIC:
+  - Start with explicit, clearly stated information
+  - Apply context to interpret implicit details
+  - Use domain knowledge for standard interpretations
+  - Flag uncertainties and assumptions clearly
+
+  3. VALIDATION AND VERIFICATION:
+  - Cross-check extracted values across sections
+  - Verify mathematical consistency (percentages, totals)
+  - Confirm logical relationships between fields
+  - Validate format compliance for structured fields
+
+field_extraction_reasoning: |
+  PROJECT TITLE EXTRACTION:
+  - Look for: Document headers, title pages, subject lines
+  - Reasoning: Extract descriptive content, exclude reference numbers
+  - Validation: Ensure title reflects actual project scope
+
+  ESTIMATED VALUE PROCESSING:
+  - Look for: Budget sections, financial summaries, lot values
+  - Reasoning: Convert to numeric format, identify currency, assess VAT status
+  - Validation: Check for consistency across document sections
+
+  DEADLINE PROCESSING:
+  - Look for: Submission deadlines, proposal due dates
+  - Reasoning: Convert to ISO 8601 format, include timezone if specified
+  - Validation: Ensure dates are logical and future-oriented
+
+  EVALUATION CRITERIA ANALYSIS:
+  - Look for: Scoring methodology, evaluation sections
+  - Reasoning: Extract criteria names, convert weights to percentages
+  - Validation: Ensure weights sum appropriately, check for sub-criteria
+
+quality_assurance_prompts: |
+  SYSTEMATIC VALIDATION CHECKS:
+
+  1. MATHEMATICAL CONSISTENCY:
+  - Do evaluation criteria weights sum to 100%?
+  - Are financial figures consistent across sections?
+  - Are lot values consistent with total project value?
+
+  2. FORMAT COMPLIANCE:
+  - Are dates in ISO 8601 format?
+  - Are email addresses properly formatted?
+  - Are CPV codes in correct 8-digit format?
+
+  3. LOGICAL COHERENCE:
+  - Are deadlines in logical sequence?
+  - Do requirements align with project type?
+  - Is contract type consistent with described work?
+
+  4. COMPLETENESS CHECK:
+  - Are all mandatory fields populated?
+  - Are confidence scores provided for each field?
+  - Are extraction notes comprehensive?
+
+error_handling_guidance: |
+  HANDLING AMBIGUOUS OR MISSING DATA:
+
+  1. AMBIGUOUS INFORMATION:
+  - Document the ambiguity in extraction_notes
+  - Provide best interpretation with lower confidence
+  - Suggest clarification in recommendations
+
+  2. MISSING CRITICAL DATA:
+  - Mark field as null but document in missing_information
+  - Provide confidence score of 0.0
+  - Suggest where information might typically be found
+
+  3. CONTRADICTORY INFORMATION:
+  - Note contradiction in extraction_notes
+  - Choose most authoritative source
+  - Lower confidence score appropriately
+
+  4. FORMAT CONVERSION ISSUES:
+  - Apply standard formatting conventions
+  - Document assumptions made
+  - Ensure output validates against schema
+
+response_validation_checklist: |
+  PRE-SUBMISSION VALIDATION:
+  ✓ All required fields are present
+  ✓ Data types match schema requirements
+  ✓ Dates are in ISO 8601 format
+  ✓ Numbers are properly formatted (no currency symbols)
+  ✓ Boolean values are true/false (not yes/no or 1/0)
+  ✓ Confidence scores are between 0.0 and 1.0
+  ✓ Extraction notes provide meaningful insights
+  ✓ JSON structure is valid and complete
